@@ -227,6 +227,15 @@ export function parseRawText(rawText, sourceTitle = "取り込みデータ") {
   state.variables = newVars;
   state.activeVariableKey = varKeys[0];
 
+  // 新規データ読み込み時は統計分析モードを「実測値（raw）」に初期化
+  state.transformMode = "raw";
+  state.isPerCapitaMode = false;
+  state.perCapitaMultiplier = 100;
+  ["select-transform-mode", "select-transform-mode-step1"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "raw";
+  });
+
   populateVariableDropdowns();
   switchActiveVariable(varKeys[0], false);
   showToast(`${Object.keys(newVars).length}個の指標データを正常に読み込みました`, "success");

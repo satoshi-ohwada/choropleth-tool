@@ -75,11 +75,8 @@ export function switchActiveVariable(key, notify = true) {
   state.currentValues = Object.assign({}, v.data);
   state.title = v.title || `市町村別 ${v.name}`;
   state.subtitle = v.subtitle || "";
-  if (v.unit) {
-    state.unit = (v.unit.startsWith("単位：") || v.unit.startsWith("単位:")) ? v.unit : `単位：${v.unit}`;
-  } else {
-    state.unit = "";
-  }
+  let rawUnit = v.unit ? v.unit.replace(/^単位[：:]\s*/, "").trim() : "";
+  state.unit = rawUnit ? `単位：${rawUnit}` : "";
   state.remarks = v.remarks || "";
 
   if (!state.paletteKey) {
@@ -97,7 +94,7 @@ export function switchActiveVariable(key, notify = true) {
 
   if (titleInput) titleInput.value = state.title;
   if (subTitleInput) subTitleInput.value = state.subtitle;
-  if (unitInput) unitInput.value = state.unit;
+  if (unitInput) unitInput.value = rawUnit;
   if (remarksInput) remarksInput.value = state.remarks;
 
   const displayTitle = document.getElementById("display-map-title");
@@ -107,7 +104,6 @@ export function switchActiveVariable(key, notify = true) {
 
   if (displayTitle) displayTitle.textContent = state.title;
   if (displaySubtitle) displaySubtitle.textContent = state.subtitle;
-  if (displayUnit) displayUnit.textContent = state.unit;
   if (displayRemarks) displayRemarks.textContent = state.remarks;
 
   let currentModeVal = state.isPerCapitaMode ? `per_capita_${state.perCapitaMultiplier || 100}` : state.transformMode;
@@ -120,12 +116,12 @@ export function switchActiveVariable(key, notify = true) {
 
   const badge = document.getElementById("variable-meta-badge");
   if (badge) {
-    badge.textContent = `${state.unit ? state.unit + ' | ' : ''}全40自治体データ読込済`;
+    badge.textContent = `${rawUnit ? `単位: ${rawUnit} | ` : ''}全40自治体データ読込済`;
   }
 
   const thVal = document.getElementById("th-val-col");
   if (thVal) {
-    thVal.textContent = `${v.name || '数値'}（${v.unit || '入力'}）`;
+    thVal.textContent = `${v.name || '数値'}${rawUnit ? `（${rawUnit}）` : '（入力）'}`;
   }
 
   try { updateDataTable(); } catch (e) { console.error(e); }
@@ -140,28 +136,25 @@ export function switchActiveVariable(key, notify = true) {
 
 export function updatePerCapitaUnit() {
   const v = state.variables[state.activeVariableKey];
-  let baseUnit = v && v.unit ? `単位：${v.unit}` : "";
-  
-  if (state.isPerCapitaMode) {
-    let label = "100人(%)";
-    if (state.perCapitaMultiplier === 1) label = "1人";
-    else if (state.perCapitaMultiplier === 100) label = "100人(%)";
-    else if (state.perCapitaMultiplier === 1000) label = "1,000人";
-    else if (state.perCapitaMultiplier === 10000) label = "1万人";
-    else if (state.perCapitaMultiplier === 100000) label = "10万人";
-    state.unit = baseUnit ? `${baseUnit} (${label}あたり)` : `単位：/${label}`;
-  } else if (state.transformMode === "zscore") {
-    state.unit = "単位：Zスコア (平均=0, SD=1)";
-  } else if (state.transformMode === "tscore") {
-    state.unit = "単位：偏差値 (平均=50, SD=10)";
-  } else {
-    state.unit = baseUnit;
+  let rawUnit = "";
+  if (v && v.unit) {
+    rawUnit = v.unit.replace(/^単位[：:]\s*/, "").trim();
   }
 
+  // 凡例の単位表示は、実測値・分析モードに関わらず常にCSVデータの単位を表示
+  const legendUnitText = rawUnit ? `単位：${rawUnit}` : "";
+  state.unit = legendUnitText;
+
   const displayUnit = document.getElementById("display-legend-unit");
+  if (displayUnit) {
+    displayUnit.textContent = legendUnitText;
+  }
+
+  // 設定サイドバーの単位入力欄（原単位を表示・編集。分析モード文字列で破壊しない）
   const unitInput = document.getElementById("map-unit-input");
-  if (displayUnit) displayUnit.textContent = state.unit;
-  if (unitInput) unitInput.value = state.unit;
+  if (unitInput && document.activeElement !== unitInput) {
+    unitInput.value = rawUnit;
+  }
 }
 
 export function updateZScorePaletteUI() {
@@ -832,9 +825,11 @@ export function bindUIEvents() {
   }
   if (unitInput) {
     unitInput.addEventListener("input", (e) => {
-      state.unit = e.target.value;
-      const el = document.getElementById("display-legend-unit");
-      if (el) el.textContent = state.unit;
+      const rawVal = e.target.value.replace(/^単位[：:]\s*/, "").trim();
+      if (state.activeVariableKey && state.variables[state.activeVariableKey]) {
+        state.variables[state.activeVariableKey].unit = rawVal;
+      }
+      updatePerCapitaUnit();
       renderLegend();
     });
   }
@@ -1048,6 +1043,12 @@ export function resetAppState(showToastMsg = true) {
   if (displaySubtitle) displaySubtitle.textContent = "データを読み込むと作図が始まります";
   if (displayUnit) displayUnit.textContent = "";
   if (displayRemarks) displayRemarks.textContent = "";
+
+  const noteEl = document.getElementById("legend-method-note");
+  if (noteEl) {
+    noteEl.style.display = "none";
+    noteEl.textContent = "";
+  }
 
   const card = document.getElementById("variable-select-card");
   if (card) card.classList.add("hidden");

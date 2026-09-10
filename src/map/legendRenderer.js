@@ -168,6 +168,11 @@ export function renderLegend() {
   const breaks = state.computedBreaks;
   if (!breaks || breaks.length < 2) {
     container.innerHTML = `<div class="text-muted p-2" style="font-size:0.8rem; text-align:center;">データ未読み込み</div>`;
+    const noteEl = document.getElementById("legend-method-note");
+    if (noteEl) {
+      noteEl.style.display = "none";
+      noteEl.textContent = "";
+    }
     return;
   }
 
@@ -251,14 +256,34 @@ export function renderLegend() {
 
   const noteEl = document.getElementById("legend-method-note");
   if (noteEl) {
+    noteEl.style.display = "flex";
+
+    let binText = "";
     if (state.binningMode === "jenks") {
-      noteEl.textContent = "※階級区分: Jenks自然分類法";
+      binText = `階級区分: Jenks自然分類法（${numClasses}段階）`;
     } else if (state.binningMode === "quantile") {
-      noteEl.textContent = "※階級区分: 分位数 (Quantile)";
+      binText = `階級区分: 分位数（${numClasses}段階）`;
     } else if (state.binningMode === "equal") {
-      noteEl.textContent = "※階級区分: 等間隔";
+      binText = `階級区分: 等間隔（${numClasses}段階）`;
     } else {
-      noteEl.textContent = "※階級区分: カスタム";
+      binText = `階級区分: 手動指定（カスタム ${numClasses}段階）`;
+    }
+
+    let modeText = "";
+    if (state.isPerCapitaMode || state.transformMode === "per_capita") {
+      const mult = state.perCapitaMultiplier || 100;
+      let pLabel = mult === 100 ? "100人あたり(％)" : (mult === 1000 ? "1,000人あたり" : (mult === 1 ? "1人あたり" : `${mult.toLocaleString()}人あたり`));
+      modeText = `分析モード: 人口${pLabel}`;
+    } else if (state.transformMode === "zscore") {
+      modeText = "分析モード: Zスコア（平均=0, SD=1）";
+    } else if (state.transformMode === "tscore") {
+      modeText = "分析モード: 偏差値（平均=50, SD=10）";
+    }
+
+    if (modeText) {
+      noteEl.innerHTML = `<div>※${modeText}</div><div>※${binText}</div>`;
+    } else {
+      noteEl.innerHTML = `<div>※${binText}</div>`;
     }
   }
 }

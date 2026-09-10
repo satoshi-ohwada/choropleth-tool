@@ -1265,8 +1265,9 @@ input[type="number"] {
   color: #475569;
   line-height: 1.35;
   display: flex;
-  align-items: center;
-  gap: 0.35cqw;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2cqw;
   font-weight: 600;
 }
 
