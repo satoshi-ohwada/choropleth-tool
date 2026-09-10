@@ -1,0 +1,53 @@
+// Master List of 40 Municipalities in Aomori Prefecture & Region Bounds
+
+export const AOMORI_MUNICIPALITIES = [
+  { name: "青森市", code: "02201", type: "市", region: "tsugaru" },
+  { name: "弘前市", code: "02202", type: "市", region: "tsugaru" },
+  { name: "八戸市", code: "02203", type: "市", region: "nanbu" },
+  { name: "黒石市", code: "02204", type: "市", region: "tsugaru" },
+  { name: "五所川原市", code: "02205", type: "市", region: "tsugaru" },
+  { name: "十和田市", code: "02206", type: "市", region: "nanbu" },
+  { name: "三沢市", code: "02207", type: "市", region: "nanbu" },
+  { name: "むつ市", code: "02208", type: "市", region: "shimokita" },
+  { name: "つがる市", code: "02209", type: "市", region: "tsugaru" },
+  { name: "平川市", code: "02210", type: "市", region: "tsugaru" },
+  { name: "平内町", code: "02301", type: "町", region: "tsugaru" },
+  { name: "今別町", code: "02303", type: "町", region: "tsugaru" },
+  { name: "蓬田村", code: "02304", type: "村", region: "tsugaru" },
+  { name: "外ヶ浜町", code: "02307", type: "町", region: "tsugaru" },
+  { name: "鰺ヶ沢町", code: "02321", type: "町", region: "tsugaru" },
+  { name: "深浦町", code: "02323", type: "町", region: "tsugaru" },
+  { name: "西目屋村", code: "02343", type: "村", region: "tsugaru" },
+  { name: "藤崎町", code: "02361", type: "町", region: "tsugaru" },
+  { name: "大鰐町", code: "02362", type: "町", region: "tsugaru" },
+  { name: "田舎館村", code: "02367", type: "村", region: "tsugaru" },
+  { name: "板柳町", code: "02381", type: "町", region: "tsugaru" },
+  { name: "鶴田町", code: "02384", type: "町", region: "tsugaru" },
+  { name: "中泊町", code: "02387", type: "町", region: "tsugaru" },
+  { name: "野辺地町", code: "02401", type: "町", region: "nanbu" },
+  { name: "七戸町", code: "02402", type: "町", region: "nanbu" },
+  { name: "六戸町", code: "02405", type: "町", region: "nanbu" },
+  { name: "横浜町", code: "02406", type: "町", region: "shimokita" },
+  { name: "東北町", code: "02408", type: "町", region: "nanbu" },
+  { name: "六ヶ所村", code: "02411", type: "村", region: "nanbu" },
+  { name: "おいらせ町", code: "02412", type: "町", region: "nanbu" },
+  { name: "大間町", code: "02423", type: "町", region: "shimokita" },
+  { name: "東通村", code: "02424", type: "村", region: "shimokita" },
+  { name: "風間浦村", code: "02425", type: "村", region: "shimokita" },
+  { name: "佐井村", code: "02426", type: "村", region: "shimokita" },
+  { name: "三戸町", code: "02441", type: "町", region: "nanbu" },
+  { name: "五戸町", code: "02442", type: "町", region: "nanbu" },
+  { name: "田子町", code: "02443", type: "町", region: "nanbu" },
+  { name: "南部町", code: "02445", type: "町", region: "nanbu" },
+  { name: "階上町", code: "02446", type: "町", region: "nanbu" },
+  { name: "新郷村", code: "02450", type: "村", region: "nanbu" }
+];
+
+export const REGION_BOUNDS = {
+  "all": [[40.186, 139.477], [41.706, 142.028]],
+  "tsugaru": [[40.350, 139.450], [41.300, 141.120]],
+  "sanpachi": [[40.180, 140.900], [40.640, 141.720]],
+  "kamikita": [[40.380, 140.800], [41.200, 141.520]],
+  "shimokita": [[41.050, 140.720], [41.600, 141.520]],
+  "nanbu": [[40.180, 140.800], [41.200, 141.720]]
+};
