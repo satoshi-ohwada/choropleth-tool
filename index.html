@@ -14,6 +14,19 @@
   <!-- Leaflet.js CSS -->
   <link rel="stylesheet" href="/vendor/css/leaflet.css">
 
+  <!-- Automatic Redirect to /dist/index.html for GitHub Pages / Production Static Hosting -->
+  <script>
+    (function() {
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.port !== '5173') {
+        if (!window.location.pathname.includes('/dist/')) {
+          var basePath = window.location.pathname.replace(/\/index\.html$/, '');
+          if (!basePath.endsWith('/')) basePath += '/';
+          window.location.replace(basePath + 'dist/index.html' + window.location.search + window.location.hash);
+        }
+      }
+    })();
+  </script>
+
   <!-- Dynamic Print Page Orientation Style (A4 Landscape / Portrait) -->
   <style id="print-page-style">
     @page { size: A4 landscape; margin: 8mm 10mm; }
