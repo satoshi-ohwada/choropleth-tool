@@ -2438,6 +2438,71 @@ input[type="number"] {
   padding-bottom: 3px;
 }
 
+/* Distribution Card Header & Legend */
+.rep-dist-card-title {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px;
+}
+
+.rep-dist-title-text {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.rep-dist-subtitle {
+  font-size: 0.70rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.rep-dist-legend {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.67rem;
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.rep-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+}
+
+.rep-legend-box {
+  display: inline-block;
+  width: 8px;
+  height: 6px;
+  background: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 1px;
+}
+
+.rep-legend-line {
+  display: inline-block;
+  width: 13px;
+  height: 0;
+  vertical-align: middle;
+}
+
+.rep-legend-line.rep-kde-line {
+  border-top: 2px solid #0f172a;
+}
+
+.rep-legend-line.rep-mean-line {
+  border-top: 1.5px dashed #0f172a;
+}
+
+.rep-legend-line.rep-median-line {
+  border-top: 1.5px dotted #475569;
+}
+
 /* Statistics Table */
 .rep-stat-table {
   width: 100%;

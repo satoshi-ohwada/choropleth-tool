@@ -2,6 +2,7 @@
 import { state } from '../core/state.js';
 import { getEffectiveValues, formatNumber } from '../stats/statsEngine.js';
 import { generateMapPNGData } from './imageExporter.js';
+import { showToast } from '../ui/toast.js';
 
 export function setPrintPageOrientation(orientation) {
   const styleEl = document.getElementById("print-page-style");
@@ -67,7 +68,7 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 530, h
   // パディングと描画寸法
   const padL = 38;
   const padR = 24;
-  const padT = 24;
+  const padT = 26;
   const padB = 22;
   const chartW = width - padL - padR;
   const chartH = height - padT - padB;
@@ -89,7 +90,7 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 530, h
   svgInner += `<text x="${padL - 5}" y="${padT + chartH + 3}" font-size="7.5" fill="#475569" text-anchor="end">0</text>`;
   svgInner += `<text x="${padL - 5}" y="${(midY + 3).toFixed(1)}" font-size="7.5" fill="#475569" text-anchor="end">${midCount}</text>`;
   svgInner += `<text x="${padL - 5}" y="${padT + 3}" font-size="7.5" fill="#475569" text-anchor="end">${yMax}</text>`;
-  svgInner += `<text x="${padL}" y="${padT - 13}" font-size="7.5" fill="#0f172a" font-weight="700" text-anchor="start">度数 (自治体数)</text>`;
+  svgInner += `<text x="${padL}" y="${padT - 13}" font-size="7.5" fill="#475569" font-weight="700" text-anchor="start">度数 (自治体数)</text>`;
 
   // 2. ヒストグラムの描画
   const barWidth = chartW / numBins;
@@ -118,38 +119,48 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 530, h
   // 4. 平均値・中央値のリファレンス垂直線
   const meanX = padL + Math.max(0, Math.min(1, (mean - min) / range)) * chartW;
   const medianX = padL + Math.max(0, Math.min(1, (median - min) / range)) * chartW;
-  const closeTogether = Math.abs(meanX - medianX) < 40;
+  const closeTogether = Math.abs(meanX - medianX) < 45;
+
+  let meanY = padT - 4;
+  let medianY = padT - 4;
+  if (closeTogether) {
+    if (meanX <= medianX) {
+      meanY = padT - 13;
+      medianY = padT - 3;
+    } else {
+      medianY = padT - 13;
+      meanY = padT - 3;
+    }
+  }
+
+  const getAnchor = (x) => {
+    if (x < padL + 25) return "start";
+    if (x > padL + chartW - 25) return "end";
+    return "middle";
+  };
+  const meanAnchor = getAnchor(meanX);
+  const medianAnchor = getAnchor(medianX);
 
   // 平均値線（黒破線）
   svgInner += `<line x1="${meanX.toFixed(1)}" y1="${padT}" x2="${meanX.toFixed(1)}" y2="${padT + chartH}" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="4,3" />`;
-  svgInner += `<text x="${meanX.toFixed(1)}" y="${closeTogether ? padT - 13 : padT - 4}" font-size="8" fill="#0f172a" text-anchor="middle" font-weight="700">平均: ${valFmt(mean)}</text>`;
+  svgInner += `<text x="${meanX.toFixed(1)}" y="${meanY}" font-size="8" fill="#0f172a" text-anchor="${meanAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">平均: ${valFmt(mean)}</text>`;
 
   // 中央値線（濃灰破線）
   svgInner += `<line x1="${medianX.toFixed(1)}" y1="${padT}" x2="${medianX.toFixed(1)}" y2="${padT + chartH}" stroke="#475569" stroke-width="1.5" stroke-dasharray="2,2" />`;
-  svgInner += `<text x="${medianX.toFixed(1)}" y="${padT - 4}" font-size="8" fill="#475569" text-anchor="middle" font-weight="700">中央: ${valFmt(median)}</text>`;
+  svgInner += `<text x="${medianX.toFixed(1)}" y="${medianY}" font-size="8" fill="#475569" text-anchor="${medianAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">中央: ${valFmt(median)}</text>`;
 
   // 5. X軸目盛り＆注釈ラベル
   const unitLabel = unitStr ? ` (${unitStr})` : '';
-  let noteText = "※KDE曲線: 度数スケール換算（ガウス核・Silverman法）";
+  let noteText = "※KDE: ガウス核推定（度数スケール換算）";
   if (unitStr && (unitStr.includes("Zスコア") || unitStr.includes("Z値"))) {
-    noteText = "※Zスコア標準化尺度（平均0, SD=1）での度数ヒストグラム ＆ KDE曲線";
+    noteText = "※Zスコア標準化尺度（平均0, SD=1）";
   } else if (unitStr && unitStr.includes("偏差値")) {
-    noteText = "※偏差値尺度（平均50, SD=10）での度数ヒストグラム ＆ KDE曲線";
+    noteText = "※偏差値尺度（平均50, SD=10）";
   }
 
-  svgInner += `<text x="${padL}" y="${height - 5}" text-anchor="start" font-size="8" font-weight="600" fill="#334155">最小: ${valFmt(min)}${unitLabel}</text>`;
-  svgInner += `<text x="${padL + chartW}" y="${height - 5}" text-anchor="end" font-size="8" font-weight="600" fill="#334155">最大: ${valFmt(max)}${unitLabel}</text>`;
+  svgInner += `<text x="${padL}" y="${height - 5}" text-anchor="start" font-size="7.8" font-weight="600" fill="#334155">最小: ${valFmt(min)}${unitLabel}</text>`;
+  svgInner += `<text x="${padL + chartW}" y="${height - 5}" text-anchor="end" font-size="7.8" font-weight="600" fill="#334155">最大: ${valFmt(max)}${unitLabel}</text>`;
   svgInner += `<text x="${(padL + chartW / 2).toFixed(1)}" y="${height - 5}" text-anchor="middle" font-size="7.2" fill="#64748b">${noteText}</text>`;
-
-  // 6. 凡例 (右上)
-  svgInner += `
-    <g transform="translate(${padL + chartW - 200}, 9)" font-size="7.5" fill="#334155">
-      <rect x="0" y="0" width="8" height="6" fill="#f1f5f9" stroke="#334155" stroke-width="1" rx="1" />
-      <text x="11" y="5.5">度数(ヒストグラム)</text>
-      <line x1="88" y1="3" x2="102" y2="3" stroke="#0f172a" stroke-width="2" />
-      <text x="106" y="5.5">カーネル密度推定(KDE)</text>
-    </g>
-  `;
 
   return `
   <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:visible; display:block;">
@@ -195,8 +206,8 @@ export async function generateA4ReportPDF(orientation = "landscape") {
   const sum = n > 0 ? nums.reduce((a, b) => a + b, 0) : 0;
   const mean = n > 0 ? sum / n : 0;
 
-  // 変換モード・尺度と単位の判別
-  const rawUnitClean = (state.unit || "")
+  const v = state.variables[state.activeVariableKey];
+  const rawUnitClean = (v && v.unit ? v.unit : (state.unit || ""))
     .replace(/^単位[：:]\s*/, "")
     .replace(/\s*\(.*?\)\s*$/, "")
     .trim();
@@ -394,7 +405,19 @@ export async function generateA4ReportPDF(orientation = "landscape") {
           </div>
 
           <div class="rep-card rep-dist-card">
-            <div class="rep-card-title"><i class="fa-solid fa-chart-area" style="color:#0f172a;"></i> データ分布：${transformShortLabel}（度数ヒストグラム ＆ カーネル密度推定：KDE）</div>
+            <div class="rep-card-title rep-dist-card-title">
+              <div class="rep-dist-title-text">
+                <i class="fa-solid fa-chart-area" style="color:#0f172a;"></i>
+                <span>データ分布</span>
+                <span class="rep-dist-subtitle">(${transformShortLabel})</span>
+              </div>
+              <div class="rep-dist-legend">
+                <span class="rep-legend-item"><span class="rep-legend-box"></span>度数(ヒストグラム)</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-kde-line"></span>KDE密度曲線</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-mean-line"></span>平均値</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-median-line"></span>中央値</span>
+              </div>
+            </div>
             ${distSvgHtml}
           </div>
         </div>
@@ -440,7 +463,19 @@ export async function generateA4ReportPDF(orientation = "landscape") {
         </div>
 
         <div class="rep-card rep-dist-card">
-          <div class="rep-card-title"><i class="fa-solid fa-chart-area" style="color:#0f172a;"></i> データ分布：${transformShortLabel}（度数ヒストグラム ＆ カーネル密度推定：KDE）</div>
+          <div class="rep-card-title rep-dist-card-title">
+            <div class="rep-dist-title-text">
+              <i class="fa-solid fa-chart-area" style="color:#0f172a;"></i>
+              <span>データ分布</span>
+              <span class="rep-dist-subtitle">(${transformShortLabel})</span>
+            </div>
+            <div class="rep-dist-legend">
+              <span class="rep-legend-item"><span class="rep-legend-box"></span>度数(ヒストグラム)</span>
+              <span class="rep-legend-item"><span class="rep-legend-line rep-kde-line"></span>KDE密度曲線</span>
+              <span class="rep-legend-item"><span class="rep-legend-line rep-mean-line"></span>平均値</span>
+              <span class="rep-legend-item"><span class="rep-legend-line rep-median-line"></span>中央値</span>
+            </div>
+          </div>
           ${distSvgHtml}
         </div>
 
@@ -492,3 +527,121 @@ export async function generateA4ReportPDF(orientation = "landscape") {
     }
   }
 }
+
+export async function generateReportPNGData(scale = 2.5) {
+  const sheet = document.getElementById("report-sheet");
+  if (!sheet) throw new Error("レポート要素が見つかりません");
+
+  // 地図画像（rep-map-img）の読み込み完了を待機
+  const repImg = document.getElementById("rep-map-img");
+  const repLoading = document.getElementById("rep-map-loading");
+  if (repLoading && repLoading.style.display !== "none") {
+    let waitCount = 0;
+    while (waitCount < 25 && repLoading.style.display !== "none") {
+      await new Promise(r => setTimeout(r, 100));
+      waitCount++;
+    }
+  }
+  if (repImg && !repImg.complete) {
+    await new Promise(resolve => {
+      repImg.onload = resolve;
+      repImg.onerror = resolve;
+      setTimeout(resolve, 1500);
+    });
+  }
+
+  // レポート用紙の外枠シャドウ・変形を一時解除してクリーンな画像にする
+  const prevBoxShadow = sheet.style.boxShadow;
+  const prevTransform = sheet.style.transform;
+  sheet.style.boxShadow = "none";
+  sheet.style.transform = "none";
+
+  try {
+    let dataUrl = null;
+    if (window.htmlToImage && typeof window.htmlToImage.toPng === "function") {
+      dataUrl = await window.htmlToImage.toPng(sheet, {
+        pixelRatio: scale,
+        skipFonts: true,
+        cacheBust: true,
+        backgroundColor: "#ffffff"
+      });
+    } else if (typeof html2canvas === "function") {
+      const canvas = await html2canvas(sheet, {
+        scale: scale,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false
+      });
+      dataUrl = canvas.toDataURL("image/png");
+    } else {
+      throw new Error("画像出力ライブラリが見つかりません");
+    }
+    return dataUrl;
+  } finally {
+    sheet.style.boxShadow = prevBoxShadow;
+    sheet.style.transform = prevTransform;
+  }
+}
+
+export async function exportReportPNG() {
+  const btn = document.getElementById("btn-export-report-png");
+  const origHtml = btn ? btn.innerHTML : "";
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> 生成中...`;
+    }
+    showToast("A4レポートの高解像度PNG画像を生成しています...", "info");
+    const dataUrl = await generateReportPNGData(2.5);
+    const link = document.createElement("a");
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const orient = document.getElementById("report-sheet")?.classList.contains("orient-portrait") ? "portrait" : "landscape";
+    const orientLabel = orient === "portrait" ? "縦" : "横";
+    const varName = state.variables[state.activeVariableKey]?.name || "統計レポート";
+    link.download = `A4分析レポート_${varName}_${orientLabel}_${dateStr}.png`;
+    link.href = dataUrl;
+    link.click();
+    showToast("A4レポートのPNG画像をダウンロード保存しました", "success");
+  } catch (err) {
+    console.error("Report PNG export error:", err);
+    showToast("レポートPNG画像の出力に失敗しました: " + err.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+}
+
+export async function copyReportPNGToClipboard() {
+  const btn = document.getElementById("btn-copy-report-png");
+  const origHtml = btn ? btn.innerHTML : "";
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> 処理中...`;
+    }
+    showToast("レポート画像をクリップボードに生成しています...", "info");
+    const dataUrl = await generateReportPNGData(2.0);
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([
+        new window.ClipboardItem({ [blob.type]: blob })
+      ]);
+      showToast("レポート画像をクリップボードにコピーしました！資料にそのまま貼り付けできます", "success");
+    } else {
+      throw new Error("お使いのブラウザはクリップボードへの画像コピーに対応していません");
+    }
+  } catch (err) {
+    console.error("Copy report PNG error:", err);
+    showToast("クリップボードへのコピーに失敗しました: " + err.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+}
+

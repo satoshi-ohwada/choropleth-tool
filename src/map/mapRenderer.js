@@ -333,7 +333,10 @@ export function renderGeoJSONLayer() {
       if (hasVal) {
         displayVal = `${val.toLocaleString()} <small style="color:#cbd5e1">${getEffectiveUnit()}</small>`;
         if (state.transformMode === "zscore" || state.transformMode === "tscore") {
-          extraInfo = `<div style="color:#cbd5e1; font-size:0.75rem; margin-top:2px;">(実測値: ${rawVal !== undefined ? rawVal.toLocaleString() : 'なし'})</div>`;
+          const v = state.variables[state.activeVariableKey];
+          const rawUnit = v && v.unit ? v.unit.replace(/^単位[：:]\s*/, "").trim() : "";
+          const unitSuffix = rawUnit ? ` ${rawUnit}` : "";
+          extraInfo = `<div style="color:#cbd5e1; font-size:0.75rem; margin-top:2px;">(実測値: ${rawVal !== undefined ? rawVal.toLocaleString() + unitSuffix : 'なし'})</div>`;
         }
       } else if (isSpecial) {
         let spLabel = getSpecialValueLabel(val);

@@ -161,7 +161,16 @@ export function getColorForValue(val) {
 export function renderLegend() {
   const container = document.getElementById("legend-items-container");
   const unitEl = document.getElementById("display-legend-unit");
-  if (unitEl) unitEl.textContent = state.unit || "";
+  const isDimensionless = (state.transformMode === "zscore" || state.transformMode === "tscore");
+  if (unitEl) {
+    if (isDimensionless) {
+      unitEl.textContent = "";
+      unitEl.style.display = "none";
+    } else {
+      unitEl.textContent = state.unit || "";
+      unitEl.style.display = state.unit ? "inline" : "none";
+    }
+  }
   if (!container) return;
   container.innerHTML = "";
 

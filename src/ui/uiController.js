@@ -8,7 +8,7 @@ import { renderBoxPlot, updateBoxplotPosition } from '../map/boxplotRenderer.js'
 import { updateDataTable } from './tableEditor.js';
 import { updateStatsSummary } from '../stats/statsEngine.js';
 import { exportPNG, copyPNGToClipboard, exportCSVData } from '../export/imageExporter.js';
-import { generateA4ReportPDF, setPrintPageOrientation } from '../export/pdfExporter.js';
+import { generateA4ReportPDF, setPrintPageOrientation, exportReportPNG, copyReportPNGToClipboard } from '../export/pdfExporter.js';
 import { showToast } from './toast.js';
 import { parseRawText, parseFileInput } from '../parsers/csvParser.js';
 import nenkanCsv from '../../public/data/nenkan_data100.csv?raw';
@@ -76,7 +76,8 @@ export function switchActiveVariable(key, notify = true) {
   state.title = v.title || `市町村別 ${v.name}`;
   state.subtitle = v.subtitle || "";
   let rawUnit = v.unit ? v.unit.replace(/^単位[：:]\s*/, "").trim() : "";
-  state.unit = rawUnit ? `単位：${rawUnit}` : "";
+  const isStandardizedMode = (state.transformMode === "zscore" || state.transformMode === "tscore");
+  state.unit = isStandardizedMode ? "" : (rawUnit ? `単位：${rawUnit}` : "");
   state.remarks = v.remarks || "";
 
   if (!state.paletteKey) {
@@ -141,16 +142,39 @@ export function updatePerCapitaUnit() {
     rawUnit = v.unit.replace(/^単位[：:]\s*/, "").trim();
   }
 
-  // 凡例の単位表示は、実測値・分析モードに関わらず常にCSVデータの単位を表示
-  const legendUnitText = rawUnit ? `単位：${rawUnit}` : "";
+  let legendUnitText = "";
+
+  if (state.transformMode === "zscore" || state.transformMode === "tscore") {
+    // Zスコアや偏差値は無次元数（標準化値）のため単位は付かない（単位なし）
+    legendUnitText = "";
+  } else if (state.isPerCapitaMode || state.transformMode === "per_capita") {
+    // 人口あたり換算時
+    let label = "100人(%)";
+    if (state.perCapitaMultiplier === 1) label = "1人";
+    else if (state.perCapitaMultiplier === 100) label = "100人(%)";
+    else if (state.perCapitaMultiplier === 1000) label = "1,000人";
+    else if (state.perCapitaMultiplier === 10000) label = "1万人";
+    else if (state.perCapitaMultiplier === 100000) label = "10万人";
+
+    if (rawUnit) {
+      legendUnitText = `単位：${rawUnit} (${label}あたり)`;
+    } else {
+      legendUnitText = `（人口${label}あたり）`;
+    }
+  } else {
+    // 実測値（raw）モード
+    legendUnitText = rawUnit ? `単位：${rawUnit}` : "";
+  }
+
   state.unit = legendUnitText;
 
   const displayUnit = document.getElementById("display-legend-unit");
   if (displayUnit) {
     displayUnit.textContent = legendUnitText;
+    displayUnit.style.display = legendUnitText ? "inline" : "none";
   }
 
-  // 設定サイドバーの単位入力欄（原単位を表示・編集。分析モード文字列で破壊しない）
+  // 設定サイドバーの単位入力欄（原単位を表示・編集。分析モードを切り替えても原単位を保持）
   const unitInput = document.getElementById("map-unit-input");
   if (unitInput && document.activeElement !== unitInput) {
     unitInput.value = rawUnit;
@@ -906,6 +930,16 @@ export function bindUIEvents() {
     btnPrintReport.addEventListener("click", () => {
       window.print();
     });
+  }
+
+  const btnExportReportPNG = document.getElementById("btn-export-report-png");
+  if (btnExportReportPNG) {
+    btnExportReportPNG.addEventListener("click", exportReportPNG);
+  }
+
+  const btnCopyReportPNG = document.getElementById("btn-copy-report-png");
+  if (btnCopyReportPNG) {
+    btnCopyReportPNG.addEventListener("click", copyReportPNGToClipboard);
   }
 
   const btnModalOrientLandscape = document.getElementById("btn-modal-orient-landscape");
