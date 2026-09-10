@@ -1139,14 +1139,16 @@
 
           <!-- Dynamic Legend Overlay -->
           <div id="map-legend" class="map-legend-box position-rightmiddle">
-            <div class="legend-header">
-              <span class="legend-title">凡例</span>
-              <span id="display-legend-unit" class="legend-unit">単位：人</span>
+            <div class="legend-card-body">
+              <div class="legend-header">
+                <span class="legend-title">凡例</span>
+                <span id="display-legend-unit" class="legend-unit">単位：人</span>
+              </div>
+              <div id="legend-items-container" class="legend-items">
+                <!-- Dynamically populated by JS -->
+              </div>
             </div>
-            <div id="legend-items-container" class="legend-items">
-              <!-- Dynamically populated by JS -->
-            </div>
-            <div id="legend-method-note" class="legend-method-note" style="display:none;"></div>
+            <div id="legend-method-note" class="legend-method-note"></div>
           </div>
 
           <!-- Dynamic Box Plot Overlay (Dispersion / Quartiles) -->
