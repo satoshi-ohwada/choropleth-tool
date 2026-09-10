@@ -26,6 +26,7 @@ export async function generateMapPNGData() {
 
   const isTransparent = (state.mapBg === "transparent");
   if (isTransparent) {
+    frame.classList.remove("transparent-bg");
     frame.style.backgroundImage = "none";
     frame.style.backgroundColor = "transparent";
     frame.style.background = "none";
@@ -53,6 +54,9 @@ export async function generateMapPNGData() {
 
     return dataUrl;
   } finally {
+    if (isTransparent) {
+      frame.classList.add("transparent-bg");
+    }
     frame.style.boxShadow = prevBoxShadow;
     frame.style.border = prevBorder;
     frame.style.backgroundImage = prevBgImage;

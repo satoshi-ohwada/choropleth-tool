@@ -165,7 +165,7 @@ export function updatePerCapitaUnit() {
 }
 
 export function updateZScorePaletteUI() {
-  const box = document.getElementById("zscore-palette-box");
+  const box = document.getElementById("zscore-palette-box") || document.getElementById("zscore-palette-card");
   const badge = document.getElementById("zscore-palette-badge");
   if (!box) return;
   const isZScoreOrTScore = (state.transformMode === "zscore" || state.transformMode === "tscore");
@@ -198,6 +198,21 @@ export function handleTransformModeChange(modeVal, notify = true) {
     state.isPerCapitaMode = false;
   }
 
+  const isZScoreOrTScore = (state.transformMode === "zscore" || state.transformMode === "tscore");
+  if (isZScoreOrTScore) {
+    if (!state.paletteKey || !state.paletteKey.startsWith("div_")) {
+      state.paletteKey = "div_blue_red";
+    }
+  } else {
+    if (state.paletteKey && state.paletteKey.startsWith("div_")) {
+      state.paletteKey = "blues";
+    }
+  }
+
+  document.querySelectorAll(".palette-btn").forEach(btn => {
+    btn.classList.toggle("active", !state.useCustomGradient && btn.getAttribute("data-palette") === state.paletteKey);
+  });
+
   ["select-transform-mode", "select-transform-mode-step1"].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value !== modeVal) el.value = modeVal;
@@ -214,7 +229,8 @@ export function handleTransformModeChange(modeVal, notify = true) {
   if (notify) {
     const refEl = document.getElementById("select-transform-mode-step1") || document.getElementById("select-transform-mode");
     const selOptText = refEl?.options[refEl?.selectedIndex]?.text || "";
-    showToast(`数値を「${selOptText}」に切替・変換しました`, "info");
+    const paletteNotice = isZScoreOrTScore ? `（発散型パレット「${state.paletteKey}」を自動適用）` : "";
+    showToast(`数値を「${selOptText}」に切替・変換しました${paletteNotice}`, "info");
   }
 }
 
@@ -940,6 +956,12 @@ export function bindUIEvents() {
     }
   }
 
+  // Reset App Button
+  const btnReset = document.getElementById("btn-reset");
+  if (btnReset) {
+    btnReset.addEventListener("click", resetAppState);
+  }
+
   // Load Presets
   const btnLoadNenkan = document.getElementById("btn-load-preset-nenkan");
   if (btnLoadNenkan) {
@@ -969,5 +991,101 @@ export function bindUIEvents() {
         showToast("プリセットデータの読み込みに失敗しました", "error");
       }
     });
+  }
+}
+
+export function resetAppState(showToastMsg = true) {
+  state.activeVariableKey = null;
+  state.variables = {};
+  state.currentValues = {};
+  state.title = "";
+  state.subtitle = "";
+  state.unit = "";
+  state.remarks = "";
+  state.transformMode = "raw";
+  state.isPerCapitaMode = false;
+  state.perCapitaMultiplier = 100;
+  state.paletteKey = "blues";
+  state.useCustomGradient = false;
+  state.invertPalette = false;
+  state.binningMode = "equal";
+  state.stepCount = 5;
+  state.numClasses = 5;
+  state.customBreaks = [];
+  state.mapRenderMode = "choropleth";
+  state.bubbleSizeMode = "equal";
+  state.bubbleLabelMode = "name";
+  state.bubbleNameFormat = "full";
+  state.showBoxplot = true;
+  state.boxplotPosition = "auto";
+  state.legendPosition = "rightmiddle";
+  state.labelStyle = "compact";
+  state.showOuterBorder = false;
+
+  if (state.bubbleGroup) {
+    try { state.bubbleGroup.clearLayers(); } catch (e) {}
+  }
+
+  // Clear text inputs in DOM
+  const titleInput = document.getElementById("map-title-input");
+  const subTitleInput = document.getElementById("map-subtitle-input");
+  const unitInput = document.getElementById("map-unit-input");
+  const remarksInput = document.getElementById("map-remarks-input");
+  const rawPasteInput = document.getElementById("raw-paste-input");
+
+  if (titleInput) titleInput.value = "";
+  if (subTitleInput) subTitleInput.value = "";
+  if (unitInput) unitInput.value = "";
+  if (remarksInput) remarksInput.value = "";
+  if (rawPasteInput) rawPasteInput.value = "";
+
+  const displayTitle = document.getElementById("display-map-title");
+  const displaySubtitle = document.getElementById("display-map-subtitle");
+  const displayUnit = document.getElementById("display-legend-unit");
+  const displayRemarks = document.getElementById("display-map-remarks");
+
+  if (displayTitle) displayTitle.textContent = "市町村別統計マップ";
+  if (displaySubtitle) displaySubtitle.textContent = "データを読み込むと作図が始まります";
+  if (displayUnit) displayUnit.textContent = "";
+  if (displayRemarks) displayRemarks.textContent = "";
+
+  const card = document.getElementById("variable-select-card");
+  if (card) card.classList.add("hidden");
+
+  // Synchronize Form Controls
+  ["select-transform-mode", "select-transform-mode-step1"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "raw";
+  });
+
+  ["select-binning-mode", "select-binning-mode-step1"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "equal";
+  });
+
+  const stepInput = document.getElementById("step-count-input");
+  if (stepInput) stepInput.value = 5;
+
+  const stepCountBadge = document.getElementById("step-count-badge");
+  if (stepCountBadge) stepCountBadge.textContent = "5階級";
+
+  const renderModeRadio = document.querySelector('input[name="map-render-mode"][value="choropleth"]');
+  if (renderModeRadio) renderModeRadio.checked = true;
+
+  const chkBoxplot = document.getElementById("check-show-boxplot");
+  if (chkBoxplot) chkBoxplot.checked = true;
+
+  document.querySelectorAll(".palette-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-palette") === "blues");
+  });
+
+  populateVariableDropdowns();
+  try { updateDataTable(); } catch (e) {}
+  try { renderGeoJSONLayer(); } catch (e) {}
+  try { renderMiniMapLayer(); } catch (e) {}
+  try { updateStatsSummary(); } catch (e) {}
+
+  if (showToastMsg) {
+    showToast("初期状態（データ未読み込み）にリセットしました", "info");
   }
 }
