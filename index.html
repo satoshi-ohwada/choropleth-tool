@@ -212,7 +212,7 @@
                   
                   <!-- Left: Variable Selection -->
                   <div class="var-select-col">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                    <div class="variable-select-header">
                       <label for="select-variable-step1" class="form-label mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.95rem;">
                         <i class="fa-solid fa-layer-group text-blue"></i>
                         <span>📊 作図する項目（変数）を選択</span>
@@ -233,12 +233,14 @@
 
                   <!-- Right: Transformation Mode Selection (Same options as Step 2) -->
                   <div class="trans-select-col">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                    <div class="variable-select-header">
                       <label for="select-transform-mode-step1" class="form-label mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.95rem;">
                         <i class="fa-solid fa-calculator text-blue"></i>
                         <span>🧮 数値の変換・統計分析モード</span>
                       </label>
-                      <span class="text-muted" style="font-size: 0.75rem;">※ 人口補正（令和2年国勢調査基準）・標準化</span>
+                      <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size: 0.75rem; font-weight:600;">
+                        人口補正・標準化
+                      </span>
                     </div>
                     <select id="select-transform-mode-step1" class="form-control form-control-lg fw-bold" style="border-color: #3b82f6; font-size: 1.0rem; background:#ffffff;">
                       <option value="raw" selected>① 実測値（そのままの数値）</option>
@@ -248,11 +250,19 @@
                       <option value="zscore">⑤ Zスコア（標準化偏差 : 平均=0, SD=1）</option>
                       <option value="tscore">⑥ 偏差値（Tスコア : 平均=50, SD=10）</option>
                     </select>
-                    <small class="text-muted d-block mt-1" style="font-size:0.75rem; line-height:1.4;">
-                      ※ 人口あたり換算の基準人口には<b>「令和2年(2020年)国勢調査（総務省統計局）」</b>を使用しています。
-                    </small>
                   </div>
 
+                </div>
+
+                <!-- Footer Note spanning both columns -->
+                <div class="mt-2 pt-2 border-top d-flex align-items-center justify-content-between flex-wrap gap-2 text-muted" style="font-size:0.75rem; border-color: rgba(147, 197, 253, 0.45) !important;">
+                  <div class="d-flex align-items-center gap-1">
+                    <i class="fa-solid fa-circle-info text-blue"></i>
+                    <span>※ 人口あたり換算の基準人口には<b>「令和2年(2020年)国勢調査（総務省統計局）」</b>を使用しています。</span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span>※ 項目や分析モードは作図画面（Step 2）でもいつでも変更可能です</span>
+                  </div>
                 </div>
               </div>
             </div>

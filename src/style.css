@@ -2116,7 +2116,7 @@ input[type="number"] {
   display: grid;
   grid-template-columns: 1fr;
   gap: 14px;
-  align-items: end;
+  align-items: start;
 }
 
 @media (min-width: 860px) {
@@ -2124,6 +2124,16 @@ input[type="number"] {
     grid-template-columns: 1.15fr 1fr;
     gap: 20px;
   }
+}
+
+.variable-select-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 30px;
+  margin-bottom: 6px;
 }
 
 /* --- Bubble Map Styles (バブル塗り分け) --- */
