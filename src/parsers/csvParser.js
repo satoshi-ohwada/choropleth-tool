@@ -173,7 +173,18 @@ export function parseRawText(rawText, sourceTitle = "取り込みデータ") {
 
     let unitStr = "";
     if (unitRowParts && unitRowParts[col.idx]) {
-      unitStr = unitRowParts[col.idx].replace(/^単位[：:]\s*/, "");
+      unitStr = unitRowParts[col.idx].replace(/^単位[：:]\s*/, "").trim();
+    }
+    // カッコ内の単位自動抽出（単位行が存在しない場合のフォールバック）
+    if (!unitStr && colName) {
+      const match = colName.match(/[（\(](.*?)[）\)]\s*$/);
+      if (match && match[1]) {
+        const cand = match[1].trim();
+        // 属性区分（男、女、計、合計、総数、年等）を除外
+        if (!/^(男|女|計|合計|総数|総計|全体|実数|割合|前年比|増減|年|月|日|期)$/i.test(cand)) {
+          unitStr = cand;
+        }
+      }
     }
 
     let sourceStr = "";
@@ -272,14 +283,24 @@ export function parseFileInput(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const text = e.target.result;
+        const buffer = e.target.result;
+        let text = "";
+        try {
+          // UTF-8デコード試行（不正シーケンス時はエラー発生）
+          const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
+          text = utf8Decoder.decode(buffer);
+        } catch (errUtf8) {
+          // Excelや行政CSV標準のShift_JIS (CP932) でフォールバック
+          const sjisDecoder = new TextDecoder("shift-jis");
+          text = sjisDecoder.decode(buffer);
+        }
         parseRawText(text, `ファイル: ${fileName}`);
       } catch (err) {
         console.error(err);
         showToast("ファイルの解析に失敗しました: " + err.message, "error");
       }
     };
-    reader.readAsText(file, "UTF-8");
+    reader.readAsArrayBuffer(file);
   }
 }
 

@@ -1,8 +1,29 @@
 // PNG & SVG Map Image Exporter & Clipboard Copy Engine
 import { state } from '../core/state.js';
+import { AOMORI_MUNICIPALITIES } from '../config/municipalities.js';
+import { getEffectiveValues, getEffectiveUnit } from '../stats/statsEngine.js';
+import { initLeafletMap, renderGeoJSONLayer } from '../map/mapRenderer.js';
 import { showToast } from '../ui/toast.js';
 
 export async function generateMapPNGData() {
+  const step2 = document.getElementById("step2-map");
+  const wasStep2Hidden = step2 && (step2.style.display === "none" || (typeof window !== "undefined" && window.getComputedStyle(step2).display === "none"));
+  if (wasStep2Hidden) {
+    step2.style.display = "flex";
+    step2.style.visibility = "hidden";
+    step2.style.position = "absolute";
+    step2.style.left = "-9999px";
+    step2.style.width = "1200px";
+    step2.style.height = "850px";
+  }
+
+  if (!state.leafletMap && typeof initLeafletMap === "function") {
+    initLeafletMap();
+    renderGeoJSONLayer();
+  } else if (state.leafletMap) {
+    state.leafletMap.invalidateSize({ animate: false });
+  }
+
   const frame = document.getElementById("export-map-frame");
   if (!frame) throw new Error("Export map frame not found");
 
@@ -67,6 +88,15 @@ export async function generateMapPNGData() {
       leafletMapEl.style.backgroundColor = prevMapBgColor;
     }
     zoomControls.forEach(el => el.style.display = "");
+
+    if (wasStep2Hidden) {
+      step2.style.display = "none";
+      step2.style.visibility = "";
+      step2.style.position = "";
+      step2.style.left = "";
+      step2.style.width = "";
+      step2.style.height = "";
+    }
   }
 }
 
@@ -110,15 +140,17 @@ export async function copyPNGToClipboard() {
 export function exportCSVData() {
   try {
     const v = state.variables[state.activeVariableKey];
-    const effVals = state.currentValues || {};
-    let csvRows = ["自治体コード,市町村名,数値"];
-    if (v) {
-      csvRows[0] = `自治体名,${v.name}${state.unit ? ` (${state.unit})` : ""}`;
-    }
-    Object.keys(effVals).forEach(muni => {
-      let val = effVals[muni];
-      csvRows.push(`${muni},${val !== undefined && val !== null ? val : ""}`);
+    const effVals = getEffectiveValues();
+    const unit = getEffectiveUnit() || state.unit || "";
+    const colName = v ? v.name : "数値";
+    const headerUnit = unit ? ` (${unit})` : "";
+    let csvRows = [`自治体コード,市町村名,${colName}${headerUnit}`];
+
+    AOMORI_MUNICIPALITIES.forEach(m => {
+      let val = effVals[m.name];
+      csvRows.push(`${m.code},${m.name},${val !== undefined && val !== null ? val : ""}`);
     });
+
     const csvString = "\uFEFF" + csvRows.join("\r\n");
     const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -134,6 +166,30 @@ export function exportCSVData() {
   } catch (err) {
     console.error(err);
     showToast("CSVデータの保存に失敗しました", "error");
+  }
+}
+
+export function exportCSVTemplate() {
+  try {
+    let csvRows = ["自治体コード,市町村名,数値"];
+    AOMORI_MUNICIPALITIES.forEach(m => {
+      csvRows.push(`${m.code},${m.name},`);
+    });
+
+    const csvString = "\uFEFF" + csvRows.join("\r\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "青森県市町村データ入力用テンプレート.csv";
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("CSV入力用テンプレートをダウンロードしました", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("テンプレートのダウンロードに失敗しました", "error");
   }
 }
 

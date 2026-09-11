@@ -7,7 +7,7 @@ import { renderLegend } from '../map/legendRenderer.js';
 import { renderBoxPlot, updateBoxplotPosition } from '../map/boxplotRenderer.js';
 import { updateDataTable } from './tableEditor.js';
 import { updateStatsSummary } from '../stats/statsEngine.js';
-import { exportPNG, copyPNGToClipboard, exportCSVData } from '../export/imageExporter.js';
+import { exportPNG, copyPNGToClipboard, exportCSVData, exportCSVTemplate } from '../export/imageExporter.js';
 import { generateA4ReportPDF, setPrintPageOrientation, exportReportPNG, copyReportPNGToClipboard } from '../export/pdfExporter.js';
 import { showToast } from './toast.js';
 import { parseRawText, parseFileInput } from '../parsers/csvParser.js';
@@ -338,6 +338,55 @@ export function bindUIEvents() {
       } else {
         showToast("テキストが入力されていません", "warning");
       }
+    });
+  }
+
+  // Step 1 Data Table Controls (Search, Export, Template, Toggle, Clear)
+  const tableSearchInput = document.getElementById("table-search");
+  if (tableSearchInput) {
+    tableSearchInput.addEventListener("input", () => {
+      updateDataTable();
+    });
+  }
+
+  const btnExportCSVStep1 = document.getElementById("btn-export-csv");
+  if (btnExportCSVStep1) {
+    btnExportCSVStep1.addEventListener("click", exportCSVData);
+  }
+
+  const btnDlTemplate = document.getElementById("btn-dl-template");
+  if (btnDlTemplate) {
+    btnDlTemplate.addEventListener("click", exportCSVTemplate);
+  }
+
+  const btnToggleTable = document.getElementById("btn-toggle-table");
+  const tableCard = document.getElementById("table-card");
+  if (btnToggleTable && tableCard) {
+    btnToggleTable.addEventListener("click", () => {
+      tableCard.classList.toggle("collapsed");
+      const isCollapsed = tableCard.classList.contains("collapsed");
+      const textEl = btnToggleTable.querySelector(".toggle-text");
+      const iconEl = btnToggleTable.querySelector(".toggle-icon");
+      if (textEl) textEl.textContent = isCollapsed ? "展開する" : "折りたたむ";
+      if (iconEl) {
+        iconEl.className = isCollapsed ? "fa-solid fa-chevron-down toggle-icon" : "fa-solid fa-chevron-up toggle-icon";
+      }
+    });
+  }
+
+  const btnClearValues = document.getElementById("btn-clear-values");
+  if (btnClearValues) {
+    btnClearValues.addEventListener("click", () => {
+      const activeVar = state.variables && state.activeVariableKey ? state.variables[state.activeVariableKey] : null;
+      state.currentValues = {};
+      if (activeVar && activeVar.data) {
+        activeVar.data = {};
+      }
+      updateDataTable();
+      renderGeoJSONLayer();
+      renderMiniMapLayer();
+      updateStatsSummary();
+      showToast("数値をすべてクリアしました", "info");
     });
   }
 
@@ -1048,6 +1097,7 @@ export function resetAppState(showToastMsg = true) {
   state.showBoxplot = true;
   state.boxplotPosition = "auto";
   state.legendPosition = "rightmiddle";
+  state.labelMode = "none";
   state.labelStyle = "compact";
   state.showOuterBorder = false;
 
@@ -1093,21 +1143,25 @@ export function resetAppState(showToastMsg = true) {
     if (el) el.value = "raw";
   });
 
-  ["select-binning-mode", "select-binning-mode-step1"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "equal";
-  });
+  const binningRadio = document.querySelector('input[name="binning-mode"][value="equal"]');
+  if (binningRadio) binningRadio.checked = true;
 
-  const stepInput = document.getElementById("step-count-input");
-  if (stepInput) stepInput.value = 5;
+  const stepSlider = document.getElementById("step-count-slider");
+  if (stepSlider) stepSlider.value = 5;
 
-  const stepCountBadge = document.getElementById("step-count-badge");
-  if (stepCountBadge) stepCountBadge.textContent = "5階級";
+  const stepCountVal = document.getElementById("step-count-value");
+  if (stepCountVal) stepCountVal.textContent = "5 段階";
+
+  const lblModeSelect = document.getElementById("select-label-mode");
+  if (lblModeSelect) lblModeSelect.value = "none";
+
+  const chkOuter = document.getElementById("chk-show-outer-border");
+  if (chkOuter) chkOuter.checked = false;
 
   const renderModeRadio = document.querySelector('input[name="map-render-mode"][value="choropleth"]');
   if (renderModeRadio) renderModeRadio.checked = true;
 
-  const chkBoxplot = document.getElementById("check-show-boxplot");
+  const chkBoxplot = document.getElementById("chk-show-boxplot");
   if (chkBoxplot) chkBoxplot.checked = true;
 
   document.querySelectorAll(".palette-btn").forEach(btn => {

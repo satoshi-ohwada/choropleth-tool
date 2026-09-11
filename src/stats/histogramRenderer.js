@@ -1,5 +1,5 @@
 // SVG Histogram & Kernel Density Estimation (KDE) Curve Renderer
-import { formatNumber } from './statsEngine.js';
+import { formatNumber, computePercentile } from './statsEngine.js';
 
 export function renderDistributionChart(valEntries) {
   const svg = document.getElementById("dist-chart-svg");
@@ -58,12 +58,42 @@ export function renderDistributionChart(valEntries) {
 
   const maxBinCount = Math.max(...bins, 1);
 
+  // Kernel Density Estimation (KDE) - Silverman's rule of thumb with IQR
+  const q1 = computePercentile(nums, 0.25);
+  const q3 = computePercentile(nums, 0.75);
+  const iqr = (q3 - q1) || sd;
+  const bw = (0.9 * Math.min(sd, iqr / 1.34) * Math.pow(n, -0.2)) || (range / 8);
+
+  const kdeSteps = 60;
+  let kdePoints = [];
+  let kdeScaledMax = 0;
+
+  for (let step = 0; step <= kdeSteps; step++) {
+    const xVal = min + (step / kdeSteps) * range;
+    let density = 0;
+    nums.forEach(xi => {
+      const u = (xVal - xi) / bw;
+      density += (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
+    });
+    density = density / (n * bw); // 確率密度 f(x)
+    
+    // 統計的尺度整合: ヒストグラムの度数スケールに換算 (期待度数密度 = density * n * binWidth)
+    const scaledDensity = density * n * binWidth;
+    if (scaledDensity > kdeScaledMax) kdeScaledMax = scaledDensity;
+    kdePoints.push({ xVal, density, scaledDensity });
+  }
+
+  // Y軸上限（ヒストグラム度数と度数換算KDEの最大値に基づき統計的一致を保持）
+  const peakVal = Math.max(maxBinCount, kdeScaledMax);
+  let yMax = Math.ceil(peakVal * 1.18);
+  if (yMax < 2) yMax = 2;
+
   const svgW = 500;
   const svgH = 180;
-  const padL = 30;
+  const padL = 34;
   const padR = 20;
-  const padT = 20;
-  const padB = 30;
+  const padT = 22;
+  const padB = 26;
   const chartW = svgW - padL - padR;
   const chartH = svgH - padT - padB;
 
@@ -71,56 +101,60 @@ export function renderDistributionChart(valEntries) {
   const barW = chartW / numBins;
 
   bins.forEach((cnt, i) => {
-    const h = (cnt / maxBinCount) * chartH;
+    const h = (cnt / yMax) * chartH;
     const x = padL + i * barW + 2;
     const y = padT + (chartH - h);
     const w = barW - 4;
     barsHTML += `
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#6366f1" opacity="0.65" rx="3" ry="3">
+      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="#6366f1" opacity="0.65" rx="3" ry="3">
         <title>階級 ${i + 1}: ${cnt}自治体 (${formatNumber(min + i * binWidth)} 〜 ${formatNumber(min + (i + 1) * binWidth)})</title>
       </rect>
-      ${cnt > 0 ? `<text x="${x + w / 2}" y="${y - 4}" font-size="10" font-weight="bold" fill="#4338ca" text-anchor="middle">${cnt}</text>` : ""}
+      ${cnt > 0 ? `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 4).toFixed(1)}" font-size="10" font-weight="bold" fill="#4338ca" text-anchor="middle">${cnt}</text>` : ""}
     `;
   });
-
-  // Gaussian Kernel Density Estimation (KDE)
-  const hBandwidth = 1.06 * sd * Math.pow(n, -0.2);
-  const kdeSteps = 60;
-  let kdePoints = [];
-  let maxDensity = 0;
-
-  for (let step = 0; step <= kdeSteps; step++) {
-    const xVal = min + (step / kdeSteps) * range;
-    let kdeSum = 0;
-    nums.forEach(v => {
-      const u = (xVal - v) / (hBandwidth || 1);
-      kdeSum += Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI);
-    });
-    const density = kdeSum / (n * (hBandwidth || 1));
-    if (density > maxDensity) maxDensity = density;
-    kdePoints.push({ xVal, density });
-  }
 
   let kdePathD = "";
   kdePoints.forEach((pt, idx) => {
     const px = padL + ((pt.xVal - min) / range) * chartW;
-    const py = padT + chartH - (pt.density / (maxDensity || 1)) * (chartH * 0.85);
+    const py = padT + chartH - (pt.scaledDensity / yMax) * chartH;
     kdePathD += (idx === 0 ? "M" : "L") + ` ${px.toFixed(1)} ${py.toFixed(1)}`;
   });
 
+  const median = computePercentile(nums, 0.50);
   const meanX = padL + ((mean - min) / range) * chartW;
+  const medianX = padL + ((median - min) / range) * chartW;
+
+  const midCount = Math.round(yMax / 2);
+  const midY = padT + chartH - (midCount / yMax) * chartH;
+
+  const axisHTML = `
+    <g class="grid-lines">
+      <line x1="${padL}" y1="${padT + chartH}" x2="${padL + chartW}" y2="${padT + chartH}" stroke="#334155" stroke-width="1.2"/>
+      <line x1="${padL}" y1="${midY.toFixed(1)}" x2="${padL + chartW}" y2="${midY.toFixed(1)}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="${padL}" y1="${padT}" x2="${padL + chartW}" y2="${padT}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2"/>
+      <text x="${padL - 4}" y="${padT + chartH + 3}" font-size="8.5" fill="#64748b" text-anchor="end">0</text>
+      <text x="${padL - 4}" y="${(midY + 3).toFixed(1)}" font-size="8.5" fill="#64748b" text-anchor="end">${midCount}</text>
+      <text x="${padL - 4}" y="${padT + 3}" font-size="8.5" fill="#64748b" text-anchor="end">${yMax}</text>
+      <text x="${padL}" y="${padT - 8}" font-size="8.5" fill="#64748b" font-weight="700">度数</text>
+    </g>
+  `;
+
   const meanLineHTML = `
-    <line x1="${meanX}" y1="${padT}" x2="${meanX}" y2="${padT + chartH}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 3"/>
-    <text x="${meanX + 4}" y="${padT + 12}" font-size="10" font-weight="bold" fill="#ef4444">平均: ${formatNumber(mean)}</text>
+    <line x1="${meanX.toFixed(1)}" y1="${padT}" x2="${meanX.toFixed(1)}" y2="${padT + chartH}" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="4 3"/>
+    <text x="${meanX > padL + chartW - 55 ? (meanX - 4).toFixed(1) : (meanX + 4).toFixed(1)}" y="${padT + 12}" font-size="9" font-weight="bold" fill="#ef4444" text-anchor="${meanX > padL + chartW - 55 ? 'end' : 'start'}">平均: ${formatNumber(mean)}</text>
+  `;
+
+  const medianLineHTML = `
+    <line x1="${medianX.toFixed(1)}" y1="${padT}" x2="${medianX.toFixed(1)}" y2="${padT + chartH}" stroke="#475569" stroke-width="1.6" stroke-dasharray="2 2"/>
+    <text x="${medianX > padL + chartW - 55 ? (medianX - 4).toFixed(1) : (medianX + 4).toFixed(1)}" y="${padT + 23}" font-size="9" font-weight="bold" fill="#475569" text-anchor="${medianX > padL + chartW - 55 ? 'end' : 'start'}">中央: ${formatNumber(median)}</text>
   `;
 
   svg.innerHTML = `
-    <g class="grid-lines">
-      <line x1="${padL}" y1="${padT + chartH}" x2="${padL + chartW}" y2="${padT + chartH}" stroke="#cbd5e1" stroke-width="1"/>
-    </g>
+    ${axisHTML}
     ${barsHTML}
-    <path d="${kdePathD}" fill="none" stroke="#312e81" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="${kdePathD}" fill="none" stroke="#312e81" stroke-width="2.2" stroke-linejoin="round"/>
     ${meanLineHTML}
+    ${medianLineHTML}
   `;
 
   if (badge && adviceText) {

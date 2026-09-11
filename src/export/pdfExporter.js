@@ -1,6 +1,6 @@
 // A4 Analysis Report Generator (PDF / Print) Engine
 import { state } from '../core/state.js';
-import { getEffectiveValues, formatNumber } from '../stats/statsEngine.js';
+import { getEffectiveValues, calculateStats, formatNumber } from '../stats/statsEngine.js';
 import { generateMapPNGData } from './imageExporter.js';
 import { showToast } from '../ui/toast.js';
 
@@ -197,14 +197,13 @@ export async function generateA4ReportPDF(orientation = "landscape") {
 
   // Effective Stats & Numbers (変換モード適用済みの数値配列)
   const effectiveVals = getEffectiveValues();
-  const validEntries = Object.entries(effectiveVals)
-    .filter(([_, v]) => typeof v === "number" && !isNaN(v));
+  const stats = calculateStats(effectiveVals);
 
-  const sorted = [...validEntries].sort((a, b) => a[1] - b[1]);
-  const nums = sorted.map(e => e[1]);
-  const n = nums.length;
-  const sum = n > 0 ? nums.reduce((a, b) => a + b, 0) : 0;
-  const mean = n > 0 ? sum / n : 0;
+  const sorted = stats.sorted;
+  const nums = stats.numList;
+  const n = stats.count;
+  const sum = stats.sum;
+  const mean = stats.mean;
 
   const v = state.variables[state.activeVariableKey];
   const rawUnitClean = (v && v.unit ? v.unit : (state.unit || ""))
@@ -269,33 +268,24 @@ export async function generateA4ReportPDF(orientation = "landscape") {
     return formatNumber(val);
   }
 
-  function getPercentile(p) {
-    if (n === 0) return 0;
-    const idx = p * (n - 1);
-    const low = Math.floor(idx);
-    const high = Math.ceil(idx);
-    const weight = idx - low;
-    return nums[low] * (1 - weight) + nums[high] * weight;
-  }
+  const min = stats.min[1] !== null ? stats.min[1] : 0;
+  const max = stats.max[1] !== null ? stats.max[1] : 0;
+  const q1 = stats.q1;
+  const median = stats.median;
+  const q3 = stats.q3;
+  const iqr = stats.iqr;
+  const stdDev = stats.stdDev;
+  const minEntry = stats.min;
+  const maxEntry = stats.max;
 
-  const min = n > 0 ? nums[0] : 0;
-  const max = n > 0 ? nums[n - 1] : 0;
-  const q1 = getPercentile(0.25);
-  const median = getPercentile(0.50);
-  const q3 = getPercentile(0.75);
-  const iqr = q3 - q1;
-
-  const minEntry = n > 0 ? sorted[0] : ["-", 0];
-  const maxEntry = n > 0 ? sorted[n - 1] : ["-", 0];
-
-  const variance = n > 1 ? nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1) : 0;
-  const stdDev = Math.sqrt(variance);
-
-  const sumDisplay = isZScore
-    ? `${formatReportVal(sum)} <span style="font-size:0.7rem; color:#64748b; font-weight:normal;">(理論値0)</span>`
-    : isTScore
-    ? `${formatReportVal(sum)} <span style="font-size:0.7rem; color:#64748b; font-weight:normal;">(50×${n})</span>`
+  const isRatioOrTransformed = isPerCapita || isZScore || isTScore;
+  const sumDisplay = isRatioOrTransformed
+    ? `- <span style="font-size:0.68rem; color:#64748b; font-weight:normal;">(対象外)</span>`
     : formatReportVal(sum);
+
+  const avgNoteHtml = isPerCapita
+    ? `<div style="font-size:0.68rem; color:#64748b; margin-top:4px; line-height:1.2;">※平均値は各市町村の単純算術平均（人口加重なし）</div>`
+    : '';
 
   const statTableHtml = `
     <table class="rep-stat-table">
@@ -334,6 +324,7 @@ export async function generateA4ReportPDF(orientation = "landscape") {
         </tr>
       </tbody>
     </table>
+    ${avgNoteHtml}
   `;
 
   // Rankings (上位・下位各10位)

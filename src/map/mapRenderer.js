@@ -245,17 +245,27 @@ export function loadGeoJSONData() {
 
 function calculateCentroids(geojson) {
   state.dynamicCentroids = {};
-  if (!geojson || !geojson.features) return;
-
-  geojson.features.forEach(f => {
-    let rawName = f.properties.name || f.properties.N03_004;
-    let matchedName = normalizeName(rawName) || rawName;
-    
-    let layer = L.geoJSON(f);
-    let bounds = layer.getBounds();
-    let center = bounds.getCenter();
-    state.dynamicCentroids[matchedName] = [center.lat, center.lng];
+  
+  // 1. マスター定義の代表座標（役場所在地・中心市街地）を最優先で代入（飛び地対策）
+  AOMORI_MUNICIPALITIES.forEach(m => {
+    if (m.center && Array.isArray(m.center) && m.center.length === 2) {
+      state.dynamicCentroids[m.name] = [m.center[0], m.center[1]];
+    }
   });
+
+  // 2. 未定義の自治体があればGeoJSONの外接矩形中心でフォールバック
+  if (geojson && geojson.features) {
+    geojson.features.forEach(f => {
+      let rawName = f.properties.name || f.properties.N03_004;
+      let matchedName = normalizeName(rawName) || rawName;
+      if (!state.dynamicCentroids[matchedName]) {
+        let layer = L.geoJSON(f);
+        let bounds = layer.getBounds();
+        let center = bounds.getCenter();
+        state.dynamicCentroids[matchedName] = [center.lat, center.lng];
+      }
+    });
+  }
 }
 
 export function updateMapTransformModeBadge() {

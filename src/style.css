@@ -2650,8 +2650,9 @@ input[type="number"] {
     visibility: visible !important;
   }
 
-  /* レポートモーダルを用紙全体に展開 */
-  #report-modal {
+  /* レポートモーダルを用紙全体に展開（印刷時は常に表示して白紙化を防止） */
+  #report-modal,
+  #report-modal.hidden {
     position: static !important;
     display: block !important;
     background: #ffffff !important;
@@ -2662,10 +2663,6 @@ input[type="number"] {
     overflow: visible !important;
     visibility: visible !important;
     z-index: 1 !important;
-  }
-
-  #report-modal.hidden {
-    display: none !important;
   }
 
   #report-modal .modal-dialog {

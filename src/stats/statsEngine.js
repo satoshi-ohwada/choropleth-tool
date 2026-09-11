@@ -62,12 +62,7 @@ export function getJenksBreaks(dataList, numClasses) {
     let pivot = parseInt(mat1[last][count], 10);
     let id = pivot - 2;
     if (id >= 0 && id < list.length) {
-      let valCurr = list[id];
-      if (valCurr <= kclass[0] && id + 1 < list.length) {
-        kclass[count - 1] = (list[id] + list[id + 1]) / 2.0;
-      } else {
-        kclass[count - 1] = valCurr;
-      }
+      kclass[count - 1] = list[id];
     } else {
       kclass[count - 1] = list[0];
     }
@@ -75,18 +70,13 @@ export function getJenksBreaks(dataList, numClasses) {
     count--;
   }
 
-  for (let i = 1; i < kclass.length; i++) {
-    if (kclass[i] <= kclass[i - 1]) {
-      let candidate = list.find(x => x > kclass[i - 1]);
-      if (candidate !== undefined) {
-        kclass[i] = candidate;
-      } else {
-        kclass[i] = kclass[i - 1] + 1e-4;
-      }
-    }
+  let cleanBreaks = [...new Set(kclass)].sort((a, b) => a - b);
+  if (cleanBreaks[0] > list[0]) cleanBreaks.unshift(list[0]);
+  if (cleanBreaks[cleanBreaks.length - 1] < list[list.length - 1]) cleanBreaks.push(list[list.length - 1]);
+  if (cleanBreaks.length < 2) {
+    return [list[0], list[list.length - 1]];
   }
-
-  return kclass;
+  return cleanBreaks;
 }
 
 export function computeQuantileBreaks(dataList, numClasses) {
@@ -108,7 +98,7 @@ export function getEffectiveValues() {
       let val = state.currentValues[key];
       let base = state.baselinePopulation[key];
       if (typeof val === 'number' && typeof base === 'number' && base > 0) {
-        baseVals[key] = (val / base) * (state.perCapitaMultiplier || 10000);
+        baseVals[key] = (val / base) * (state.perCapitaMultiplier || 100);
       } else {
         baseVals[key] = val;
       }
@@ -144,6 +134,17 @@ export function getEffectiveValues() {
   return state.currentValues;
 }
 
+export function computePercentile(sortedNums, p) {
+  const n = sortedNums.length;
+  if (n === 0) return 0;
+  if (n === 1) return sortedNums[0];
+  const idx = p * (n - 1);
+  const low = Math.floor(idx);
+  const high = Math.ceil(idx);
+  const weight = idx - low;
+  return sortedNums[low] * (1 - weight) + sortedNums[high] * weight;
+}
+
 export function calculateStats(effectiveValuesObj) {
   const vals = Object.entries(effectiveValuesObj)
     .filter(([name, v]) => typeof v === 'number' && !isNaN(v));
@@ -154,47 +155,62 @@ export function calculateStats(effectiveValuesObj) {
   });
 
   if (vals.length === 0) {
-    return { count: 0, specialCount, sum: 0, mean: 0, median: 0, max: null, min: null, q1: 0, q3: 0, iqr: 0 };
+    return {
+      count: 0,
+      specialCount,
+      sum: 0,
+      mean: 0,
+      median: 0,
+      q1: 0,
+      q3: 0,
+      iqr: 0,
+      stdDev: 0,
+      variance: 0,
+      max: ["-", null],
+      min: ["-", null],
+      sorted: [],
+      numList: []
+    };
   }
 
-  const numList = vals.map(v => v[1]).sort((a, b) => a - b);
+  const sorted = [...vals].sort((a, b) => a[1] - b[1]);
+  const numList = sorted.map(v => v[1]);
+  const count = numList.length;
   const sum = numList.reduce((a, b) => a + b, 0);
-  const mean = sum / numList.length;
+  const mean = count > 0 ? sum / count : 0;
   
-  let median = 0;
-  let mid = Math.floor(numList.length / 2);
-  if (numList.length % 2 === 0) {
-    median = (numList[mid - 1] + numList[mid]) / 2;
-  } else {
-    median = numList[mid];
-  }
+  const variance = count > 1 ? numList.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (count - 1) : 0;
+  const stdDev = Math.sqrt(variance);
 
-  let q1Idx = Math.floor(numList.length * 0.25);
-  let q3Idx = Math.floor(numList.length * 0.75);
-  let q1 = numList[q1Idx];
-  let q3 = numList[q3Idx];
+  const median = computePercentile(numList, 0.50);
+  const q1 = computePercentile(numList, 0.25);
+  const q3 = computePercentile(numList, 0.75);
+  const iqr = q3 - q1;
 
-  let maxEntry = vals.reduce((prev, curr) => (curr[1] > prev[1]) ? curr : prev, vals[0]);
-  let minEntry = vals.reduce((prev, curr) => (curr[1] < prev[1]) ? curr : prev, vals[0]);
+  const minEntry = sorted[0];
+  const maxEntry = sorted[sorted.length - 1];
 
   return {
-    count: vals.length,
+    count,
     specialCount,
     sum,
     mean,
     median,
     q1,
     q3,
-    iqr: q3 - q1,
+    iqr,
+    stdDev,
+    variance,
     max: maxEntry,
     min: minEntry,
+    sorted,
     numList
   };
 }
 
 export function updateStatsSummary() {
-  const vals = Object.entries(getEffectiveValues())
-    .filter(([name, v]) => typeof v === 'number' && !isNaN(v));
+  const effectiveVals = getEffectiveValues();
+  const stats = calculateStats(effectiveVals);
 
   const countEl = document.getElementById("stat-count");
   const sumEl = document.getElementById("stat-sum");
@@ -205,21 +221,16 @@ export function updateStatsSummary() {
 
   if (!countEl) return;
 
-  let specialCount = 0;
-  Object.values(getEffectiveValues()).forEach(v => {
-    if (isSpecialValue(v)) specialCount++;
-  });
-
-  if (specialCount > 0) {
-    countEl.innerHTML = `${vals.length} <small style="font-size:0.75rem; color:#d97706; font-weight:700;">(秘匿等${specialCount})</small>`;
-    countEl.title = `有効数値データ: ${vals.length} 自治体 / 秘匿・欠測等: ${specialCount} 自治体`;
+  if (stats.specialCount > 0) {
+    countEl.innerHTML = `${stats.count} <small style="font-size:0.75rem; color:#d97706; font-weight:700;">(秘匿等${stats.specialCount})</small>`;
+    countEl.title = `有効数値データ: ${stats.count} 自治体 / 秘匿・欠測等: ${stats.specialCount} 自治体`;
   } else {
-    countEl.textContent = `${vals.length} / 40`;
-    countEl.title = `有効数値データ: ${vals.length} 自治体`;
+    countEl.textContent = `${stats.count} / 40`;
+    countEl.title = `有効数値データ: ${stats.count} 自治体`;
   }
-  countEl.className = (vals.length + specialCount) === 40 ? "stat-value text-blue" : "stat-value text-orange";
+  countEl.className = (stats.count + stats.specialCount) === 40 ? "stat-value text-blue" : "stat-value text-orange";
 
-  if (vals.length === 0) {
+  if (stats.count === 0) {
     if (sumEl) sumEl.textContent = "-";
     if (meanEl) meanEl.textContent = "-";
     if (medianEl) medianEl.textContent = "-";
@@ -229,36 +240,39 @@ export function updateStatsSummary() {
     return;
   }
 
-  const numList = vals.map(v => v[1]).sort((a, b) => a - b);
-  const sum = numList.reduce((a, b) => a + b, 0);
-  const mean = sum / numList.length;
-  
-  let median = 0;
-  let mid = Math.floor(numList.length / 2);
-  if (numList.length % 2 === 0) {
-    median = (numList[mid - 1] + numList[mid]) / 2;
-  } else {
-    median = numList[mid];
+  const isRatioOrTransformed = (state.transformMode === "per_capita" || state.isPerCapitaMode || state.transformMode === "zscore" || state.transformMode === "tscore");
+
+  if (sumEl) {
+    if (isRatioOrTransformed) {
+      sumEl.textContent = "- (対象外)";
+      sumEl.title = "※比率・標準化データのため単純合算は行いません";
+    } else {
+      sumEl.textContent = formatNumber(stats.sum);
+      sumEl.title = `合　計: ${stats.sum.toLocaleString()}`;
+    }
   }
 
-  let maxEntry = vals.reduce((prev, curr) => (curr[1] > prev[1]) ? curr : prev, vals[0]);
-  let minEntry = vals.reduce((prev, curr) => (curr[1] < prev[1]) ? curr : prev, vals[0]);
+  if (meanEl) {
+    meanEl.textContent = formatNumber(stats.mean);
+    meanEl.title = `平均値: ${stats.mean.toLocaleString()}`;
+  }
 
-  if (sumEl) sumEl.textContent = formatNumber(sum);
-  if (meanEl) meanEl.textContent = formatNumber(mean);
-  if (medianEl) medianEl.textContent = formatNumber(median);
+  if (medianEl) {
+    medianEl.textContent = formatNumber(stats.median);
+    medianEl.title = `中央値: ${stats.median.toLocaleString()}`;
+  }
   
   if (maxEl) {
-    maxEl.textContent = `${formatNumber(maxEntry[1])} (${maxEntry[0]})`;
-    maxEl.title = `${maxEntry[0]}: ${maxEntry[1].toLocaleString()}`;
+    maxEl.textContent = `${formatNumber(stats.max[1])} (${stats.max[0]})`;
+    maxEl.title = `${stats.max[0]}: ${stats.max[1].toLocaleString()}`;
   }
   
   if (minEl) {
-    minEl.textContent = `${formatNumber(minEntry[1])} (${minEntry[0]})`;
-    minEl.title = `${minEntry[0]}: ${minEntry[1].toLocaleString()}`;
+    minEl.textContent = `${formatNumber(stats.min[1])} (${stats.min[0]})`;
+    minEl.title = `${stats.min[0]}: ${stats.min[1].toLocaleString()}`;
   }
 
-  renderDistributionChart(vals);
+  renderDistributionChart(stats.sorted);
   renderBoxPlot();
 }
 

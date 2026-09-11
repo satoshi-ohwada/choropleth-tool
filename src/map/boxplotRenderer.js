@@ -1,6 +1,6 @@
 // Box Plot (箱ひげ図) Overlay Renderer - Restored to exact pre-modular shape
 import { state } from '../core/state.js';
-import { getEffectiveValues, formatNumber } from '../stats/statsEngine.js';
+import { getEffectiveValues, calculateStats, formatNumber } from '../stats/statsEngine.js';
 import { getColorForValue } from './legendRenderer.js';
 
 export function updateBoxplotPosition() {
@@ -36,36 +36,25 @@ export function renderBoxPlot() {
   updateBoxplotPosition();
 
   const effectiveVals = getEffectiveValues();
-  const validEntries = Object.entries(effectiveVals)
-    .filter(([name, v]) => typeof v === "number" && !isNaN(v));
+  const stats = calculateStats(effectiveVals);
 
-  if (validEntries.length < 3) {
+  if (stats.count < 3) {
     svg.innerHTML = `<text x="80" y="105" text-anchor="middle" font-size="11" fill="#94a3b8">データ不足</text>`;
     if (statBadge) statBadge.textContent = "未入力";
     if (summaryEl) summaryEl.innerHTML = `<span>最小: -</span><span>中央: -</span><span>最大: -</span>`;
     return;
   }
 
-  const sorted = [...validEntries].sort((a, b) => a[1] - b[1]);
-  const nums = sorted.map(e => e[1]);
-  const n = nums.length;
-  const min = nums[0];
-  const max = nums[n - 1];
-
-  function getPercentile(p) {
-    const idx = p * (n - 1);
-    const low = Math.floor(idx);
-    const high = Math.ceil(idx);
-    const weight = idx - low;
-    return nums[low] * (1 - weight) + nums[high] * weight;
-  }
-
-  const q1 = getPercentile(0.25);
-  const median = getPercentile(0.50);
-  const q3 = getPercentile(0.75);
-  const iqr = (q3 - q1) || 1;
-  const sum = nums.reduce((a, b) => a + b, 0);
-  const mean = sum / n;
+  const sorted = stats.sorted;
+  const nums = stats.numList;
+  const n = stats.count;
+  const min = stats.min[1];
+  const max = stats.max[1];
+  const q1 = stats.q1;
+  const median = stats.median;
+  const q3 = stats.q3;
+  const iqr = stats.iqr || 1;
+  const mean = stats.mean;
 
   const lowerFence = q1 - 1.5 * iqr;
   const upperFence = q3 + 1.5 * iqr;

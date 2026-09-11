@@ -39,7 +39,7 @@ export const state = {
   miniMap: null,
   miniMapLayer: null,
   transformMode: "raw", // 'raw' | 'per_capita' | 'zscore' | 'tscore'
-  perCapitaMultiplier: 10000,
+  perCapitaMultiplier: 100,
   exportFormat: "png", // 'png' | 'svg'
   showBoxplot: true,
   boxplotPosition: "auto",

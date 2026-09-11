@@ -65,6 +65,11 @@ export function updateDataTable() {
     tbody.appendChild(tr);
   });
 
+  const countLabel = document.getElementById("filtered-count-label");
+  if (countLabel) {
+    countLabel.textContent = filterQuery ? `40自治体中 ${visibleCount} 自治体を表示中` : "全40自治体を表示中";
+  }
+
   tbody.querySelectorAll(".cell-val-input").forEach(input => {
     input.addEventListener("input", (e) => {
       if (state.transformMode !== "raw") {
@@ -73,8 +78,13 @@ export function updateDataTable() {
       }
       let name = e.target.getAttribute("data-name");
       let rawVal = e.target.value.trim();
+      const activeVar = state.variables && state.activeVariableKey ? state.variables[state.activeVariableKey] : null;
+
       if (rawVal === "") {
         delete state.currentValues[name];
+        if (activeVar && activeVar.data) {
+          delete activeVar.data[name];
+        }
         e.target.classList.add("is-empty");
         e.target.classList.remove("is-special");
       } else {
@@ -82,14 +92,29 @@ export function updateDataTable() {
         let sp = normalizeSpecialValue(rawVal);
         if (!isNaN(num)) {
           state.currentValues[name] = num;
+          if (activeVar && activeVar.data) {
+            activeVar.data[name] = num;
+          }
           e.target.classList.remove("is-empty");
           e.target.classList.remove("is-special");
         } else if (sp) {
           state.currentValues[name] = sp;
+          if (activeVar && activeVar.data) {
+            activeVar.data[name] = sp;
+          }
           e.target.classList.remove("is-empty");
           e.target.classList.add("is-special");
         }
       }
+
+      let curNumCnt = 0;
+      let curSpCnt = 0;
+      Object.values(state.currentValues).forEach(v => {
+        if (isNumericValue(v)) curNumCnt++;
+        else if (isSpecialValue(v)) curSpCnt++;
+      });
+      syncMatchBadges(curNumCnt, curSpCnt);
+
       renderGeoJSONLayer();
       renderMiniMapLayer();
       updateStatsSummary();
@@ -106,9 +131,11 @@ export function syncMatchBadges(numericCount, specialCount) {
     : `${totalEntered} / 40 入力済`;
   let className = totalEntered === 40 ? "badge badge-success" : (totalEntered > 0 ? "badge badge-info" : "badge badge-warning");
 
-  const badge = document.getElementById("match-badge");
-  if (badge) {
-    badge.textContent = text;
-    badge.className = className;
-  }
+  ["match-badge", "hero-match-badge"].forEach(id => {
+    const badge = document.getElementById(id);
+    if (badge) {
+      badge.textContent = text;
+      badge.className = className;
+    }
+  });
 }
