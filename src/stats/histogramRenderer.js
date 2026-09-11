@@ -39,8 +39,11 @@ export function renderDistributionChart(valEntries) {
   const variance = nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1 || 1);
   const sd = Math.sqrt(variance) || 1;
 
-  const m3 = nums.reduce((acc, v) => acc + Math.pow(v - mean, 3), 0) / n;
-  const skewness = sd > 0 ? (m3 / Math.pow(sd, 3)) : 0;
+  let skewness = 0;
+  if (n >= 3 && sd > 0) {
+    const sumCubed = nums.reduce((acc, v) => acc + Math.pow((v - mean) / sd, 3), 0);
+    skewness = (n / ((n - 1) * (n - 2))) * sumCubed;
+  }
 
   if (minLabel) minLabel.textContent = `最小: ${formatNumber(min)}`;
   if (meanLabel) meanLabel.textContent = `平均: ${formatNumber(mean)}`;

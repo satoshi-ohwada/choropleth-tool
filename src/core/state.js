@@ -12,12 +12,14 @@ export const state = {
   unit: "",
   remarks: "",
   paletteKey: "blues",
+  lastStandardPalette: "blues",
   useCustomGradient: false,
   customStartColor: "#eff6ff",
   customEndColor: "#1e3a8a",
   invertPalette: false,
   binningMode: "equal", // 'equal' | 'jenks' | 'quantile' | 'custom'
   stepCount: 5,
+  numClasses: 5,
   customBreaks: [],
   mapBg: "none",
   strokeOpacity: 0.8,
@@ -52,7 +54,7 @@ export const state = {
   bubbleGroup: null
 };
 
-// Make window.state globally accessible for debugging if needed
-if (typeof window !== 'undefined') {
+// Make window.state globally accessible for debugging in DEV mode
+if (typeof window !== 'undefined' && import.meta.env?.DEV) {
   window.state = state;
 }

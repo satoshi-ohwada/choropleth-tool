@@ -101,7 +101,7 @@ export function initMainMap() {
     zoomTimeout = setTimeout(() => {
       if (state.mapRenderMode === "bubble") {
         renderBubbleLayer();
-      } else {
+      } else if (state.labelMode !== "none") {
         renderLabelsLayer();
       }
     }, 200);
@@ -177,12 +177,15 @@ export function renderMiniMapLayer() {
       let rawName = feature.properties.name || feature.properties.N03_004;
       let matchedName = normalizeName(rawName) || rawName;
       let val = values[matchedName];
-      let hasVal = (val !== undefined && val !== null && !isNaN(val));
-      let displayVal = hasVal ? val.toLocaleString() : "データなし";
+      let hasVal = isNumericValue(val);
+      let isSpecial = isSpecialValue(val);
+      let displayVal = hasVal 
+        ? `${val.toLocaleString()} ${state.unit || ""}` 
+        : (isSpecial ? `<span style="color:#f59e0b; font-weight:700;">${getSpecialValueLabel(val)}</span>` : "データなし");
 
       layer.bindTooltip(`
         <div style="font-weight:700; font-size:0.85rem;">${matchedName}</div>
-        <div style="color:#60a5fa; font-size:0.78rem;">${displayVal} ${state.unit || ""}</div>
+        <div style="color:#60a5fa; font-size:0.78rem;">${displayVal}</div>
       `, { sticky: true });
 
       layer.on("click", () => {

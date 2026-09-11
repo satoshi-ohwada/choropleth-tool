@@ -55,11 +55,9 @@ export function renderBubbleLayer() {
       popRatio = Math.max(0, Math.min(1, popRatio));
       r = Math.round(17 + popRatio * 15); // 半径17px〜32px（直径34px〜64px）
     } else if (state.bubbleSizeMode === "value") {
-      // 指標数値の大きさに応じた平方根スケーリング（連続比例シンボル図）
+      // 最小値〜最大値の相対差分に応じた面積比例（半径の平方根スケーリング）
       if (hasVal && maxVal > minVal) {
-        let valOffset = val - minVal;
-        let range = maxVal - minVal;
-        let valRatio = Math.sqrt(Math.max(0, valOffset)) / Math.sqrt(range);
+        let valRatio = Math.sqrt(Math.max(0, val - minVal) / (maxVal - minVal));
         valRatio = Math.max(0, Math.min(1, valRatio));
         r = Math.round(17 + valRatio * 17); // 半径17px〜34px（直径34px〜68px）
       } else {

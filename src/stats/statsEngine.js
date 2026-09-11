@@ -111,9 +111,10 @@ export function getEffectiveValues() {
       if (typeof v === 'number' && !isNaN(v)) numericVals.push(v);
     }
     if (numericVals.length === 0) return state.currentValues;
+    let count = numericVals.length;
     let sum = numericVals.reduce((a, b) => a + b, 0);
-    let mean = sum / numericVals.length;
-    let variance = numericVals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / numericVals.length;
+    let mean = sum / count;
+    let variance = count > 1 ? numericVals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (count - 1) : 0;
     let std = Math.sqrt(variance);
 
     for (let key in state.currentValues) {
@@ -278,18 +279,19 @@ export function updateStatsSummary() {
 
 export function formatNumber(num) {
   if (num === null || num === undefined || isNaN(num)) return "-";
+  const isInt = (v) => Math.abs(v - Math.round(v)) < 1e-6;
   if (Math.abs(num) >= 100000000) {
     let val = (num / 100000000);
-    return (val % 1 === 0 ? val.toLocaleString() : val.toFixed(1)) + "億";
+    return (isInt(val) ? Math.round(val).toLocaleString() : val.toFixed(1)) + "億";
   }
   if (Math.abs(num) >= 10000) {
     let val = (num / 10000);
-    return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)) + "万";
+    return (isInt(val) ? Math.round(val).toLocaleString() : val.toFixed(1)) + "万";
   }
-  if (Math.abs(num) < 10 && num % 1 !== 0) {
+  if (Math.abs(num) < 10 && !isInt(num)) {
     return num.toFixed(2);
   }
-  return (num % 1 === 0) ? num.toLocaleString() : num.toFixed(1);
+  return isInt(num) ? Math.round(num).toLocaleString() : num.toFixed(1);
 }
 
 

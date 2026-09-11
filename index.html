@@ -238,7 +238,7 @@
                         <i class="fa-solid fa-calculator text-blue"></i>
                         <span>🧮 数値の変換・統計分析モード</span>
                       </label>
-                      <span class="text-muted" style="font-size: 0.75rem;">※ 人口補正・標準化</span>
+                      <span class="text-muted" style="font-size: 0.75rem;">※ 人口補正（令和2年国勢調査基準）・標準化</span>
                     </div>
                     <select id="select-transform-mode-step1" class="form-control form-control-lg fw-bold" style="border-color: #3b82f6; font-size: 1.0rem; background:#ffffff;">
                       <option value="raw" selected>① 実測値（そのままの数値）</option>
@@ -248,6 +248,9 @@
                       <option value="zscore">⑤ Zスコア（標準化偏差 : 平均=0, SD=1）</option>
                       <option value="tscore">⑥ 偏差値（Tスコア : 平均=50, SD=10）</option>
                     </select>
+                    <small class="text-muted d-block mt-1" style="font-size:0.75rem; line-height:1.4;">
+                      ※ 人口あたり換算の基準人口には<b>「令和2年(2020年)国勢調査（総務省統計局）」</b>を使用しています。
+                    </small>
                   </div>
 
                 </div>
@@ -494,7 +497,7 @@
                     <option value="tscore">⑥ 偏差値（Tスコア : 平均=50, SD=10）</option>
                   </select>
                   <small class="text-muted d-block mt-1" style="font-size:0.75rem; line-height:1.4;">
-                    ※ 人口あたり換算の基準人口には<b>「令和7年国勢調査 人口速報集計（総務省統計局）」</b>を使用しています。
+                    ※ 人口あたり換算の基準人口には<b>「令和2年(2020年)国勢調査（総務省統計局）」</b>を使用しています。
                   </small>
                 </div>
               </div>

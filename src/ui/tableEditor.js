@@ -47,8 +47,8 @@ export function updateDataTable() {
 
     let specialInputClass = isSpecial ? "is-special" : "";
     const isTransformed = (state.transformMode !== "raw");
-    const cellReadonlyAttr = isTransformed ? 'readonly style="background:#f8fafc; color:#475569; cursor:not-allowed;"' : '';
-    const cellTitleAttr = isTransformed ? 'title="※数値変換適用中は直接編集できません。"' : '';
+    const cellDisabledAttr = isTransformed ? 'disabled style="background:#f1f5f9; color:#94a3b8; cursor:not-allowed;"' : '';
+    const cellTitleAttr = isTransformed ? 'title="※数値変換適用中（人口補正・Zスコア・偏差値）は直接編集できません。実測値モードで編集してください。"' : '';
 
     tr.innerHTML = `
       <td style="text-align:center;">${statusIcon}</td>
@@ -58,7 +58,7 @@ export function updateDataTable() {
         <span class="badge ${m.type === '市' ? 'badge-primary' : 'badge-secondary'}" style="background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;">${m.type}</span>
       </td>
       <td style="text-align:right;">
-        <input type="text" inputmode="decimal" class="cell-val-input ${hasVal || isSpecial ? '' : 'is-empty'} ${specialInputClass}" data-name="${m.name}" value="${valInputStr}" placeholder="未入力" ${cellReadonlyAttr} ${cellTitleAttr}>
+        <input type="text" inputmode="decimal" class="cell-val-input ${hasVal || isSpecial ? '' : 'is-empty'} ${specialInputClass}" data-name="${m.name}" value="${valInputStr}" placeholder="未入力" ${cellDisabledAttr} ${cellTitleAttr}>
       </td>
     `;
 
@@ -67,7 +67,7 @@ export function updateDataTable() {
 
   const countLabel = document.getElementById("filtered-count-label");
   if (countLabel) {
-    countLabel.textContent = filterQuery ? `40自治体中 ${visibleCount} 自治体を表示中` : "全40自治体を表示中";
+    countLabel.textContent = visibleCount === 40 ? "全40自治体を表示中" : `40自治体中 ${visibleCount} 自治体を表示中`;
   }
 
   tbody.querySelectorAll(".cell-val-input").forEach(input => {

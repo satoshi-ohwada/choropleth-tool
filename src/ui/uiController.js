@@ -222,7 +222,7 @@ export function handleTransformModeChange(modeVal, notify = true) {
     }
   } else {
     if (state.paletteKey && state.paletteKey.startsWith("div_")) {
-      state.paletteKey = "blues";
+      state.paletteKey = state.lastStandardPalette || "blues";
     }
   }
 
@@ -333,8 +333,6 @@ export function bindUIEvents() {
       const text = rawPasteInput.value.trim();
       if (text) {
         parseRawText(text, "手動ペーストデータ");
-        populateVariableDropdowns();
-        switchActiveVariable(Object.keys(state.variables)[0], false);
       } else {
         showToast("テキストが入力されていません", "warning");
       }
@@ -484,6 +482,9 @@ export function bindUIEvents() {
       document.querySelectorAll(".palette-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       state.paletteKey = btn.getAttribute("data-palette");
+      if (!state.paletteKey.startsWith("div_")) {
+        state.lastStandardPalette = state.paletteKey;
+      }
       state.useCustomGradient = false;
       
       const chkGrad = document.getElementById("chk-use-custom-gradient");
@@ -623,6 +624,7 @@ export function bindUIEvents() {
       const parts = text.split(/[\s,]+/).map(v => parseFloat(v)).filter(v => !isNaN(v));
       if (parts.length >= 2) {
         parts.sort((a, b) => a - b);
+        state.customBreaks = parts;
         state.computedBreaks = parts;
         state.binningMode = "custom";
         renderGeoJSONLayer();

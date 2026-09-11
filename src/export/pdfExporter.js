@@ -1,6 +1,6 @@
 // A4 Analysis Report Generator (PDF / Print) Engine
 import { state } from '../core/state.js';
-import { getEffectiveValues, calculateStats, formatNumber } from '../stats/statsEngine.js';
+import { getEffectiveValues, calculateStats, formatNumber, computePercentile } from '../stats/statsEngine.js';
 import { generateMapPNGData } from './imageExporter.js';
 import { showToast } from '../ui/toast.js';
 
@@ -38,7 +38,9 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 530, h
   // カーネル密度推定 (KDE: Kernel Density Estimation) - Silverman's rule of thumb
   const variance = nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1 || 1);
   const sd = Math.sqrt(variance) || 1;
-  const iqr = (nums[Math.floor(n * 0.75)] - nums[Math.floor(n * 0.25)]) || sd;
+  const q1 = computePercentile(nums, 0.25);
+  const q3 = computePercentile(nums, 0.75);
+  const iqr = (q3 - q1) || sd;
   const bw = (0.9 * Math.min(sd, iqr / 1.34) * Math.pow(n, -0.2)) || (range / 8);
 
   const pts = 60;
@@ -284,7 +286,7 @@ export async function generateA4ReportPDF(orientation = "landscape") {
     : formatReportVal(sum);
 
   const avgNoteHtml = isPerCapita
-    ? `<div style="font-size:0.68rem; color:#64748b; margin-top:4px; line-height:1.2;">※平均値は各市町村の単純算術平均（人口加重なし）</div>`
+    ? `<div style="font-size:0.68rem; color:#64748b; margin-top:4px; line-height:1.2;">※平均値は各市町村の単純算術平均（人口加重なし）<br>※人口補正基準: 令和2年(2020年)国勢調査人口</div>`
     : '';
 
   const statTableHtml = `
