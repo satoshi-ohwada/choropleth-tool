@@ -63,6 +63,8 @@ export function switchActiveVariable(key, notify = true) {
 
   const card = document.getElementById("variable-select-card");
   if (card) card.classList.remove("hidden");
+  const stdCard = document.getElementById("standardize-mode-card");
+  if (stdCard) stdCard.classList.remove("hidden");
 
   ["select-variable-step1", "select-variable-step2", "select-variable-header"].forEach(id => {
     const el = document.getElementById(id);
@@ -107,10 +109,19 @@ export function switchActiveVariable(key, notify = true) {
   if (displaySubtitle) displaySubtitle.textContent = state.subtitle;
   if (displayRemarks) displayRemarks.textContent = state.remarks;
 
-  let currentModeVal = state.isPerCapitaMode ? `per_capita_${state.perCapitaMultiplier || 100}` : state.transformMode;
+  let currentPerCapitaVal = state.isPerCapitaMode ? `per_capita_${state.perCapitaMultiplier || 100}` : "raw";
   ["select-transform-mode", "select-transform-mode-step1"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.value = currentModeVal;
+    if (el) el.value = currentPerCapitaVal;
+  });
+
+  const stdMode = state.standardizeMode || "none";
+  document.querySelectorAll(".btn-standardize").forEach(btn => {
+    const btnMode = btn.getAttribute("data-mode");
+    const isActive = (btnMode === stdMode);
+    btn.classList.toggle("active", isActive);
+    btn.classList.toggle("btn-primary", isActive);
+    btn.classList.toggle("btn-outline-primary", !isActive);
   });
 
   updatePerCapitaUnit();
@@ -184,9 +195,47 @@ export function updatePerCapitaUnit() {
 export function updateZScorePaletteUI() {
   const box = document.getElementById("zscore-palette-box") || document.getElementById("zscore-palette-card");
   const badge = document.getElementById("zscore-palette-badge");
+  const isStandardized = (state.standardizeMode === "zscore" || state.standardizeMode === "tscore" || state.transformMode === "zscore" || state.transformMode === "tscore");
+
+  // Step 1 & Step 2 のステータスバッジを更新
+  const statusBadges = [
+    document.getElementById("standardize-status-badge"),
+    document.getElementById("step1-standardize-status-badge")
+  ].filter(Boolean);
+
+  statusBadges.forEach(statusBadge => {
+    if (state.standardizeMode === "zscore" || state.transformMode === "zscore") {
+      statusBadge.textContent = "Zスコア適用中";
+      statusBadge.style.background = "#dbeafe";
+      statusBadge.style.color = "#1d4ed8";
+      statusBadge.style.borderColor = "#93c5fd";
+    } else if (state.standardizeMode === "tscore" || state.transformMode === "tscore") {
+      statusBadge.textContent = "偏差値適用中";
+      statusBadge.style.background = "#fef3c7";
+      statusBadge.style.color = "#b45309";
+      statusBadge.style.borderColor = "#fde68a";
+    } else {
+      statusBadge.textContent = "通常表示中";
+      statusBadge.style.background = "#f1f5f9";
+      statusBadge.style.color = "#475569";
+      statusBadge.style.borderColor = "#cbd5e1";
+    }
+  });
+
+  // Step 1 の説明テキストを更新
+  const guideText = document.getElementById("standardize-guide-text");
+  if (guideText) {
+    if (state.standardizeMode === "zscore") {
+      guideText.innerHTML = `<i class="fa-solid fa-arrows-split-up-and-left text-blue me-1"></i><b>Zスコア（標準化偏差）</b>: 県平均を基準(0)とし、標準偏差(SD)単位で平均より高いか低いかを評価します。発散型パレットで正負が色分けされます。`;
+    } else if (state.standardizeMode === "tscore") {
+      guideText.innerHTML = `<i class="fa-solid fa-graduation-cap text-warning me-1"></i><b>偏差値（Tスコア）</b>: 県平均を50、標準偏差(SD)を10として各自治体の相対的な水準を直感的に分かりやすく表現します。`;
+    } else {
+      guideText.innerHTML = `<i class="fa-solid fa-circle-check text-blue me-1"></i><b>通常値</b>: ①で設定した指標の数値をそのまま階級区分してマップに描画します。`;
+    }
+  }
+
   if (!box) return;
-  const isZScoreOrTScore = (state.transformMode === "zscore" || state.transformMode === "tscore");
-  if (isZScoreOrTScore) {
+  if (isStandardized) {
     box.classList.remove("disabled-section");
     box.classList.add("active-section");
     if (badge) {
@@ -203,33 +252,67 @@ export function updateZScorePaletteUI() {
   }
 }
 
-export function handleTransformModeChange(modeVal, notify = true) {
-  if (!modeVal) return;
-
-  if (modeVal.startsWith("per_capita")) {
-    state.transformMode = "per_capita";
-    state.isPerCapitaMode = true;
-    state.perCapitaMultiplier = parseInt(modeVal.replace("per_capita_", ""), 10) || 100;
-  } else {
-    state.transformMode = modeVal;
-    state.isPerCapitaMode = false;
-  }
-
-  const isZScoreOrTScore = (state.transformMode === "zscore" || state.transformMode === "tscore");
-  if (isZScoreOrTScore) {
+// 統計的標準化（通常値 / Zスコア / 偏差値）の切り替え
+export function handleStandardizeChange(stdMode, notify = true) {
+  state.standardizeMode = stdMode; // 'none' | 'zscore' | 'tscore'
+  if (stdMode === "zscore" || stdMode === "tscore") {
+    state.transformMode = stdMode;
     if (!state.paletteKey || !state.paletteKey.startsWith("div_")) {
       state.paletteKey = "div_blue_red";
     }
   } else {
+    state.transformMode = state.isPerCapitaMode ? "per_capita" : "raw";
     if (state.paletteKey && state.paletteKey.startsWith("div_")) {
       state.paletteKey = state.lastStandardPalette || "blues";
     }
   }
 
+  // ボタンのactive状態を同期（Step 1 & Step 2）
+  document.querySelectorAll(".btn-standardize").forEach(btn => {
+    const btnMode = btn.getAttribute("data-mode");
+    const isActive = (btnMode === stdMode);
+    btn.classList.toggle("active", isActive);
+    btn.classList.toggle("btn-primary", isActive);
+    btn.classList.toggle("btn-outline-primary", !isActive);
+  });
+
   document.querySelectorAll(".palette-btn").forEach(btn => {
     btn.classList.toggle("active", !state.useCustomGradient && btn.getAttribute("data-palette") === state.paletteKey);
   });
 
+  updatePerCapitaUnit();
+  updateZScorePaletteUI();
+
+  try { updateDataTable(); } catch (e) { console.error(e); }
+  try { renderGeoJSONLayer(); } catch (e) { console.error(e); }
+  try { renderMiniMapLayer(); } catch (e) { console.error(e); }
+  try { updateStatsSummary(); } catch (e) { console.error(e); }
+
+  if (notify) {
+    const label = stdMode === "zscore" ? "Zスコア（標準化偏差）" : (stdMode === "tscore" ? "偏差値（Tスコア）" : "通常値（標準化なし）");
+    const paletteNotice = (stdMode === "zscore" || stdMode === "tscore") ? `（発散型パレット「${state.paletteKey}」を自動適用）` : "";
+    showToast(`統計的標準化を「${label}」に切り替えました${paletteNotice}`, "info");
+  }
+}
+
+// 人口補正（率化）の切り替え
+export function handlePerCapitaChange(modeVal, notify = true) {
+  if (!modeVal) return;
+
+  if (modeVal === "raw" || modeVal === "none") {
+    state.isPerCapitaMode = false;
+    if (state.standardizeMode === "none") {
+      state.transformMode = "raw";
+    }
+  } else if (modeVal.startsWith("per_capita")) {
+    state.isPerCapitaMode = true;
+    state.perCapitaMultiplier = parseInt(modeVal.replace("per_capita_", ""), 10) || 100;
+    if (state.standardizeMode === "none") {
+      state.transformMode = "per_capita";
+    }
+  }
+
+  // セレクトボックスの値を同期
   ["select-transform-mode", "select-transform-mode-step1"].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value !== modeVal) el.value = modeVal;
@@ -246,8 +329,16 @@ export function handleTransformModeChange(modeVal, notify = true) {
   if (notify) {
     const refEl = document.getElementById("select-transform-mode-step1") || document.getElementById("select-transform-mode");
     const selOptText = refEl?.options[refEl?.selectedIndex]?.text || "";
-    const paletteNotice = isZScoreOrTScore ? `（発散型パレット「${state.paletteKey}」を自動適用）` : "";
-    showToast(`数値を「${selOptText}」に切替・変換しました${paletteNotice}`, "info");
+    showToast(`人口補正を「${selOptText}」に設定しました`, "info");
+  }
+}
+
+// 既存互換用のラッパー
+export function handleTransformModeChange(modeVal, notify = true) {
+  if (modeVal === "zscore" || modeVal === "tscore") {
+    handleStandardizeChange(modeVal, notify);
+  } else {
+    handlePerCapitaChange(modeVal, notify);
   }
 }
 
@@ -466,14 +557,22 @@ export function bindUIEvents() {
     }
   });
 
-  // Transform Mode Dropdowns (実測値 / 人口補正 / Zスコア / 偏差値)
+  // Transform Mode Dropdowns (実測値 / 人口補正)
   ["select-transform-mode", "select-transform-mode-step1"].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener("change", (e) => {
-        handleTransformModeChange(e.target.value, true);
+        handlePerCapitaChange(e.target.value, true);
       });
     }
+  });
+
+  // Standardization Toggle Buttons (Step 1 & Step 2)
+  document.querySelectorAll(".btn-standardize").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const mode = btn.getAttribute("data-mode") || "none";
+      handleStandardizeChange(mode, true);
+    });
   });
 
   // Color Palette Buttons Selection
@@ -1085,6 +1184,7 @@ export function resetAppState(showToastMsg = true) {
   state.transformMode = "raw";
   state.isPerCapitaMode = false;
   state.perCapitaMultiplier = 100;
+  state.standardizeMode = "none";
   state.paletteKey = "blues";
   state.useCustomGradient = false;
   state.invertPalette = false;
@@ -1138,11 +1238,20 @@ export function resetAppState(showToastMsg = true) {
 
   const card = document.getElementById("variable-select-card");
   if (card) card.classList.add("hidden");
+  const stdCard = document.getElementById("standardize-mode-card");
+  if (stdCard) stdCard.classList.add("hidden");
 
   // Synchronize Form Controls
   ["select-transform-mode", "select-transform-mode-step1"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "raw";
+  });
+
+  document.querySelectorAll(".btn-standardize").forEach(btn => {
+    const isNone = (btn.getAttribute("data-mode") === "none");
+    btn.classList.toggle("active", isNone);
+    btn.classList.toggle("btn-primary", isNone);
+    btn.classList.toggle("btn-outline-primary", !isNone);
   });
 
   const binningRadio = document.querySelector('input[name="binning-mode"][value="equal"]');

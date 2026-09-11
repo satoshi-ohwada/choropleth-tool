@@ -92,47 +92,57 @@ export function computeQuantileBreaks(dataList, numClasses) {
 }
 
 export function getEffectiveValues() {
-  let baseVals = {};
-  if (state.transformMode === "per_capita" || state.isPerCapitaMode) {
+  let intermediateVals = {};
+
+  // ステップ1: 人口規模補正（率化）
+  const isPerCapita = state.isPerCapitaMode || state.transformMode === "per_capita";
+  if (isPerCapita && state.perCapitaMultiplier > 0) {
     for (let key in state.currentValues) {
       let val = state.currentValues[key];
       let base = state.baselinePopulation[key];
       if (typeof val === 'number' && typeof base === 'number' && base > 0) {
-        baseVals[key] = (val / base) * (state.perCapitaMultiplier || 100);
+        intermediateVals[key] = (val / base) * state.perCapitaMultiplier;
       } else {
-        baseVals[key] = val;
+        intermediateVals[key] = val;
       }
     }
-    return baseVals;
-  } else if (state.transformMode === "zscore" || state.transformMode === "tscore") {
+  } else {
+    intermediateVals = Object.assign({}, state.currentValues);
+  }
+
+  // ステップ2: 統計的標準化（Zスコア・偏差値）
+  const stdMode = state.standardizeMode || (state.transformMode === "zscore" ? "zscore" : (state.transformMode === "tscore" ? "tscore" : "none"));
+  if (stdMode === "zscore" || stdMode === "tscore") {
     let numericVals = [];
-    for (let key in state.currentValues) {
-      let v = state.currentValues[key];
+    for (let key in intermediateVals) {
+      let v = intermediateVals[key];
       if (typeof v === 'number' && !isNaN(v)) numericVals.push(v);
     }
-    if (numericVals.length === 0) return state.currentValues;
+    if (numericVals.length === 0) return intermediateVals;
     let count = numericVals.length;
     let sum = numericVals.reduce((a, b) => a + b, 0);
     let mean = sum / count;
     let variance = count > 1 ? numericVals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (count - 1) : 0;
     let std = Math.sqrt(variance);
 
-    for (let key in state.currentValues) {
-      let v = state.currentValues[key];
+    let finalVals = {};
+    for (let key in intermediateVals) {
+      let v = intermediateVals[key];
       if (typeof v === 'number' && !isNaN(v)) {
         if (std === 0) {
-          baseVals[key] = state.transformMode === "tscore" ? 50 : 0;
+          finalVals[key] = stdMode === "tscore" ? 50 : 0;
         } else {
           let z = (v - mean) / std;
-          baseVals[key] = state.transformMode === "tscore" ? (50 + z * 10) : z;
+          finalVals[key] = stdMode === "tscore" ? (50 + z * 10) : z;
         }
       } else {
-        baseVals[key] = v;
+        finalVals[key] = v;
       }
     }
-    return baseVals;
+    return finalVals;
   }
-  return state.currentValues;
+
+  return intermediateVals;
 }
 
 export function computePercentile(sortedNums, p) {
@@ -241,7 +251,7 @@ export function updateStatsSummary() {
     return;
   }
 
-  const isRatioOrTransformed = (state.transformMode === "per_capita" || state.isPerCapitaMode || state.transformMode === "zscore" || state.transformMode === "tscore");
+  const isRatioOrTransformed = (state.isPerCapitaMode || state.transformMode === "per_capita" || state.standardizeMode === "zscore" || state.standardizeMode === "tscore" || state.transformMode === "zscore" || state.transformMode === "tscore");
 
   if (sumEl) {
     if (isRatioOrTransformed) {
@@ -296,11 +306,25 @@ export function formatNumber(num) {
 
 
 export function getEffectiveUnit() {
-  if (state.transformMode === "zscore") return "Zスコア (平均=0, SD=1)";
-  if (state.transformMode === "tscore") return "偏差値 (平均=50, SD=10)";
-  if (state.transformMode === "per_capita") {
+  const isPerCapita = (state.isPerCapitaMode || state.transformMode === "per_capita") && (state.perCapitaMultiplier > 0);
+  const stdMode = state.standardizeMode || (state.transformMode === "zscore" ? "zscore" : (state.transformMode === "tscore" ? "tscore" : "none"));
+
+  let perCapitaLabel = "";
+  if (isPerCapita) {
     const mult = state.perCapitaMultiplier || 100;
-    return mult === 1 ? "1人あたり" : mult === 100 ? "100人あたり(％)" : mult === 1000 ? "1,000人あたり" : `${mult.toLocaleString()}人あたり`;
+    perCapitaLabel = mult === 1 ? "1人あたり" : mult === 100 ? "100人あたり(％)" : mult === 1000 ? "1,000人あたり" : `${mult.toLocaleString()}人あたり`;
+  }
+
+  if (stdMode === "zscore") {
+    return perCapitaLabel ? `Zスコア (${perCapitaLabel})` : "Zスコア (平均=0, SD=1)";
+  }
+  if (stdMode === "tscore") {
+    return perCapitaLabel ? `偏差値 (${perCapitaLabel})` : "偏差値 (平均=50, SD=10)";
+  }
+  if (perCapitaLabel) {
+    const v = state.variables && state.activeVariableKey ? state.variables[state.activeVariableKey] : null;
+    const rawUnit = v && v.unit ? v.unit.replace(/^単位[：:]\s*/, "").trim() : "";
+    return rawUnit ? `${rawUnit} (${perCapitaLabel})` : perCapitaLabel;
   }
   return state.unit || "";
 }

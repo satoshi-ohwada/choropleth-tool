@@ -41,7 +41,9 @@ export const state = {
   miniMap: null,
   miniMapLayer: null,
   transformMode: "raw", // 'raw' | 'per_capita' | 'zscore' | 'tscore'
-  perCapitaMultiplier: 100,
+  isPerCapitaMode: false, // true when per_capita is active
+  perCapitaMultiplier: 100, // 1 | 100 | 1000 | 10000
+  standardizeMode: "none", // 'none' | 'zscore' | 'tscore'
   exportFormat: "png", // 'png' | 'svg'
   showBoxplot: true,
   boxplotPosition: "auto",

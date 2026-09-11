@@ -237,6 +237,45 @@ a {
   color: #0f172a;
 }
 
+/* Segmented Button Group for Standardization */
+.btn-group {
+  display: inline-flex;
+  vertical-align: middle;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.btn-group .btn {
+  border-radius: 0;
+  border: 1px solid #93c5fd;
+  margin-left: -1px;
+}
+.btn-group .btn:first-child {
+  border-top-left-radius: var(--radius-sm);
+  border-bottom-left-radius: var(--radius-sm);
+  margin-left: 0;
+}
+.btn-group .btn:last-child {
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+}
+.btn-standardize {
+  background: #ffffff;
+  color: #1e40af;
+  border-color: #93c5fd;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+.btn-standardize:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.btn-standardize.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
 .btn-sm {
   padding: 5px 10px;
   font-size: 0.78rem;
@@ -528,6 +567,15 @@ a {
 .form-control-sm {
   padding: 5px 8px;
   font-size: 0.8rem;
+}
+
+.form-control-lg {
+  height: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  box-sizing: border-box;
 }
 
 /* Drop Zone */
@@ -1258,17 +1306,26 @@ input[type="number"] {
 }
 
 .legend-method-note {
-  margin-top: 0.7cqw;
-  padding-top: 0.5cqw;
+  margin-top: 0.5cqw;
+  padding-top: 0.4cqw;
   border-top: 1px dashed #cbd5e1;
-  font-size: 1.05cqw;
+  font-size: 0.95cqw;
   color: #475569;
-  line-height: 1.35;
+  line-height: 1.3;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.2cqw;
-  font-weight: 600;
+  gap: 0.15cqw;
+  font-weight: 500;
+  max-width: 100%;
+  word-break: break-all;
+}
+
+.legend-method-note div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .map-export-frame.theme-dark .legend-method-note {
@@ -2111,29 +2168,29 @@ input[type="number"] {
   }
 }
 
-/* Variable Selection & Transformation Dual Grid in Step 1 */
-.variable-select-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  align-items: start;
-}
-
-@media (min-width: 860px) {
-  .variable-select-grid {
-    grid-template-columns: 1.15fr 1fr;
-    gap: 20px;
-  }
-}
-
+/* Variable Selection & Transformation Stack in Step 1 */
 .variable-select-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  min-height: 30px;
+  min-height: 28px;
   margin-bottom: 6px;
+}
+
+.variable-select-card select.form-control {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 8px 12px !important;
+  font-size: 0.95rem !important;
+  line-height: 1.4 !important;
+  box-sizing: border-box !important;
+}
+
+.var-select-row, .trans-select-row {
+  width: 100%;
 }
 
 /* --- Bubble Map Styles (バブル塗り分け) --- */

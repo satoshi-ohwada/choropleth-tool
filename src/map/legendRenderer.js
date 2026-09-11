@@ -269,30 +269,37 @@ export function renderLegend() {
 
     let binText = "";
     if (state.binningMode === "jenks") {
-      binText = `階級区分: Jenks自然分類法（${numClasses}段階）`;
+      binText = `区分: Jenks (${numClasses}段)`;
     } else if (state.binningMode === "quantile") {
-      binText = `階級区分: 分位数（${numClasses}段階）`;
+      binText = `区分: 分位数 (${numClasses}段)`;
     } else if (state.binningMode === "equal") {
-      binText = `階級区分: 等間隔（${numClasses}段階）`;
+      binText = `区分: 等間隔 (${numClasses}段)`;
     } else {
-      binText = `階級区分: 手動指定（カスタム ${numClasses}段階）`;
+      binText = `区分: 手動 (${numClasses}段)`;
     }
 
-    let modeText = "";
-    if (state.isPerCapitaMode || state.transformMode === "per_capita") {
+    let modeParts = [];
+    const isPerCapita = (state.isPerCapitaMode || state.transformMode === "per_capita") && (state.perCapitaMultiplier > 0);
+    const stdMode = state.standardizeMode || (state.transformMode === "zscore" ? "zscore" : (state.transformMode === "tscore" ? "tscore" : "none"));
+
+    if (isPerCapita) {
       const mult = state.perCapitaMultiplier || 100;
-      let pLabel = mult === 100 ? "100人あたり(％)" : (mult === 1000 ? "1,000人あたり" : (mult === 1 ? "1人あたり" : `${mult.toLocaleString()}人あたり`));
-      modeText = `分析モード: 人口${pLabel}`;
-    } else if (state.transformMode === "zscore") {
-      modeText = "分析モード: Zスコア（平均=0, SD=1）";
-    } else if (state.transformMode === "tscore") {
-      modeText = "分析モード: 偏差値（平均=50, SD=10）";
+      let pLabel = mult === 100 ? "100人(%)" : (mult === 1000 ? "千人" : (mult === 1 ? "1人" : `${mult >= 10000 ? mult / 10000 + '万' : mult}人`));
+      modeParts.push(`${pLabel}あたり`);
     }
+
+    if (stdMode === "zscore") {
+      modeParts.push("Zスコア");
+    } else if (stdMode === "tscore") {
+      modeParts.push("偏差値");
+    }
+
+    let modeText = modeParts.length > 0 ? modeParts.join(" / ") : "";
 
     if (modeText) {
-      noteEl.innerHTML = `<div>※${modeText}</div><div>※${binText}</div>`;
+      noteEl.innerHTML = `<div>※ ${modeText}</div><div>※ ${binText}</div>`;
     } else {
-      noteEl.innerHTML = `<div>※${binText}</div>`;
+      noteEl.innerHTML = `<div>※ ${binText}</div>`;
     }
   }
 }

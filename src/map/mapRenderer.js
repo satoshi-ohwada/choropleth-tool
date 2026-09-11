@@ -275,17 +275,25 @@ export function updateMapTransformModeBadge() {
   const badgeEl = document.getElementById("display-map-mode-tag");
   if (!badgeEl) return;
 
-  let label = "（実測値）";
-  if (state.transformMode === "zscore") {
-    label = "（Zスコア標準化偏差）";
-  } else if (state.transformMode === "tscore") {
-    label = "（偏差値 Tスコア）";
-  } else if (state.transformMode === "per_capita" || state.isPerCapitaMode) {
+  const isPerCapita = (state.isPerCapitaMode || state.transformMode === "per_capita") && (state.perCapitaMultiplier > 0);
+  const stdMode = state.standardizeMode || (state.transformMode === "zscore" ? "zscore" : (state.transformMode === "tscore" ? "tscore" : "none"));
+
+  let pLabel = "";
+  if (isPerCapita) {
     const mult = state.perCapitaMultiplier || 100;
-    if (mult === 100) label = "（人口100人あたり ％）";
-    else if (mult === 1000) label = "（人口1,000人あたり）";
-    else if (mult === 1) label = "（人口1人あたり）";
-    else label = `（人口${mult.toLocaleString()}人あたり）`;
+    if (mult === 100) pLabel = "人口100人あたり ％";
+    else if (mult === 1000) pLabel = "人口1,000人あたり";
+    else if (mult === 1) pLabel = "人口1人あたり";
+    else pLabel = `人口${mult.toLocaleString()}人あたり`;
+  }
+
+  let label = "（実測値）";
+  if (stdMode === "zscore") {
+    label = pLabel ? `（${pLabel}・Zスコア偏差）` : "（Zスコア標準化偏差）";
+  } else if (stdMode === "tscore") {
+    label = pLabel ? `（${pLabel}・偏差値 Tスコア）` : "（偏差値 Tスコア）";
+  } else if (pLabel) {
+    label = `（${pLabel}）`;
   }
 
   badgeEl.textContent = label;

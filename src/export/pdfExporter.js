@@ -217,40 +217,50 @@ export async function generateA4ReportPDF(orientation = "landscape") {
   let transformShortLabel = "実測値";
   let effectiveUnitStr = "";
   let axisUnitStr = "";
-  const isZScore = (state.transformMode === "zscore");
-  const isTScore = (state.transformMode === "tscore");
-  const isPerCapita = (state.transformMode === "per_capita" || state.isPerCapitaMode);
+  const isPerCapita = (state.isPerCapitaMode || state.transformMode === "per_capita") && (state.perCapitaMultiplier > 0);
+  const stdMode = state.standardizeMode || (state.transformMode === "zscore" ? "zscore" : (state.transformMode === "tscore" ? "tscore" : "none"));
+  const isZScore = (stdMode === "zscore");
+  const isTScore = (stdMode === "tscore");
 
-  if (isZScore) {
-    transformBadge = "（Zスコア標準化偏差）";
-    transformShortLabel = "Zスコア標準化";
-    effectiveUnitStr = "Zスコア (平均=0, SD=1)";
-    axisUnitStr = "Zスコア";
-  } else if (isTScore) {
-    transformBadge = "（偏差値 Tスコア）";
-    transformShortLabel = "偏差値";
-    effectiveUnitStr = "偏差値 (平均=50, SD=10)";
-    axisUnitStr = "偏差値";
-  } else if (isPerCapita) {
+  let pBadge = "";
+  let pShort = "";
+  let pAxis = "";
+  if (isPerCapita) {
     const mult = state.perCapitaMultiplier || 100;
     if (mult === 100) {
-      transformBadge = "（人口100人あたり ％）";
-      transformShortLabel = "人口100人あたり(％)";
-      axisUnitStr = "%";
+      pBadge = "人口100人あたり(％)";
+      pShort = "100人あたり(％)";
+      pAxis = "%";
     } else if (mult === 1000) {
-      transformBadge = "（人口1,000人あたり）";
-      transformShortLabel = "人口1,000人あたり";
-      axisUnitStr = rawUnitClean ? `${rawUnitClean}/千人` : "1,000人対";
+      pBadge = "人口1,000人あたり";
+      pShort = "1,000人あたり";
+      pAxis = rawUnitClean ? `${rawUnitClean}/千人` : "1,000人対";
     } else if (mult === 1) {
-      transformBadge = "（人口1人あたり）";
-      transformShortLabel = "人口1人あたり";
-      axisUnitStr = rawUnitClean ? `${rawUnitClean}/人` : "1人対";
+      pBadge = "人口1人あたり";
+      pShort = "1人あたり";
+      pAxis = rawUnitClean ? `${rawUnitClean}/人` : "1人対";
     } else {
-      transformBadge = `（人口${mult.toLocaleString()}人あたり）`;
-      transformShortLabel = `人口${mult.toLocaleString()}人あたり`;
-      axisUnitStr = `/${mult.toLocaleString()}人`;
+      pBadge = `人口${mult.toLocaleString()}人あたり`;
+      pShort = `${mult.toLocaleString()}人あたり`;
+      pAxis = `/${mult.toLocaleString()}人`;
     }
-    effectiveUnitStr = rawUnitClean ? `${rawUnitClean} (${transformShortLabel})` : transformShortLabel;
+  }
+
+  if (isZScore) {
+    transformBadge = pShort ? `（${pShort}・Zスコア）` : "（Zスコア標準化偏差）";
+    transformShortLabel = pShort ? `${pShort} ✕ Zスコア` : "Zスコア標準化";
+    effectiveUnitStr = pShort ? `Zスコア (${pShort})` : "Zスコア (平均=0, SD=1)";
+    axisUnitStr = "Zスコア";
+  } else if (isTScore) {
+    transformBadge = pShort ? `（${pShort}・偏差値）` : "（偏差値 Tスコア）";
+    transformShortLabel = pShort ? `${pShort} ✕ 偏差値` : "偏差値";
+    effectiveUnitStr = pShort ? `偏差値 (${pShort})` : "偏差値 (平均=50, SD=10)";
+    axisUnitStr = "偏差値";
+  } else if (isPerCapita) {
+    transformBadge = `（${pBadge}）`;
+    transformShortLabel = pBadge;
+    effectiveUnitStr = rawUnitClean ? `${rawUnitClean} (${pShort})` : pShort;
+    axisUnitStr = pAxis;
   } else {
     transformBadge = "（実測値）";
     transformShortLabel = "実測値";
