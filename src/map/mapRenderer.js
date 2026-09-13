@@ -249,14 +249,14 @@ export function loadGeoJSONData() {
 function calculateCentroids(geojson) {
   state.dynamicCentroids = {};
   
-  // 1. マスター定義の代表座標（役場所在地・中心市街地）を最優先で代入（飛び地対策）
+  // 1. マスター定義の幾何重心座標（主ポリゴンのグリーン・ガウス幾何重心）を代入
   AOMORI_MUNICIPALITIES.forEach(m => {
     if (m.center && Array.isArray(m.center) && m.center.length === 2) {
       state.dynamicCentroids[m.name] = [m.center[0], m.center[1]];
     }
   });
 
-  // 2. 未定義の自治体があればGeoJSONの外接矩形中心でフォールバック
+  // 2. 未定義の自治体があればGeoJSONのポリゴン重心／外接矩形中心でフォールバック
   if (geojson && geojson.features) {
     geojson.features.forEach(f => {
       let rawName = f.properties.name || f.properties.N03_004;
@@ -504,6 +504,9 @@ export function renderLabelsLayer() {
       }
     }
 
+    // 中核都市はアンカーとして位置を安定化（弘前市を中心に周囲の小町村を放射状に綺麗に押し出す：バブル表示と同一基準）
+    let isAnchor = (m.name === "弘前市" || m.name === "青森市" || m.name === "八戸市");
+
     let pt = state.leafletMap.latLngToLayerPoint(centroid);
     labels.push({
       name: m.name,
@@ -514,17 +517,17 @@ export function renderLabelsLayer() {
       origY: pt.y,
       w: w,
       h: h,
+      isAnchor: isAnchor,
       html: labelHTML
     });
   });
 
-  const ITERATIONS = 35;
-  const SPRING = isCompact ? 0.28 : 0.22;
-  const maxOffset = isCompact ? 14 : 25;
-  const REPULSION_BASE = isCompact ? 0.35 : 0.45;
+  // 力学シミュレーション（バブル表示のフォースレイアウトと共通の安定アルゴリズム）
+  const ITERATIONS = 60;
+  const PADDING = 3;
 
   for (let i = 0; i < ITERATIONS; i++) {
-    let temp = Math.pow(1.0 - (i / ITERATIONS), 1.2);
+    let alpha = Math.pow(1.0 - (i / ITERATIONS), 1.0); // 冷却
 
     for (let a = 0; a < labels.length; a++) {
       for (let b = a + 1; b < labels.length; b++) {
@@ -535,34 +538,49 @@ export function renderLabelsLayer() {
         let dy = la.y - lb.y;
         let dist = Math.sqrt(dx * dx + dy * dy);
 
-        let minDistX = (la.w + lb.w) / 2 + 3;
-        let minDistY = (la.h + lb.h) / 2 + 3;
+        let minDistX = (la.w + lb.w) / 2 + PADDING;
+        let minDistY = (la.h + lb.h) / 2 + PADDING;
 
         if (Math.abs(dx) < minDistX && Math.abs(dy) < minDistY) {
           if (dist === 0) {
-            dx = (Math.random() - 0.5);
-            dy = (Math.random() - 0.5);
+            dx = (Math.random() - 0.5) * 2;
+            dy = (Math.random() - 0.5) * 2;
             dist = Math.sqrt(dx * dx + dy * dy) || 1;
           }
           let overlapX = minDistX - Math.abs(dx);
           let overlapY = minDistY - Math.abs(dy);
-          let pushX = (dx / dist) * REPULSION_BASE * overlapX * temp;
-          let pushY = (dy / dist) * REPULSION_BASE * overlapY * temp;
-          la.x += pushX;
-          la.y += pushY;
-          lb.x -= pushX;
-          lb.y -= pushY;
+          let fx = (dx / dist) * overlapX * 0.5;
+          let fy = (dy / dist) * overlapY * 0.5;
+
+          if (la.isAnchor && !lb.isAnchor) {
+            lb.x -= fx * 1.8;
+            lb.y -= fy * 1.8;
+            la.x += fx * 0.2;
+            la.y += fy * 0.2;
+          } else if (!la.isAnchor && lb.isAnchor) {
+            la.x += fx * 1.8;
+            la.y += fy * 1.8;
+            lb.x -= fx * 0.2;
+            lb.y -= fy * 0.2;
+          } else {
+            la.x += fx;
+            la.y += fy;
+            lb.x -= fx;
+            lb.y -= fy;
+          }
         }
       }
     }
 
     labels.forEach(l => {
-      l.x += (l.origX - l.x) * SPRING;
-      l.y += (l.origY - l.y) * SPRING;
+      let spring = l.isAnchor ? 0.05 : 0.03;
+      l.x += (l.origX - l.x) * spring * alpha;
+      l.y += (l.origY - l.y) * spring * alpha;
 
       let offX = l.x - l.origX;
       let offY = l.y - l.origY;
       let distFromOrig = Math.sqrt(offX * offX + offY * offY);
+      let maxOffset = l.isAnchor ? 12 : (isCompact ? 24 : 42);
       if (distFromOrig > maxOffset) {
         let scale = maxOffset / distFromOrig;
         l.x = l.origX + offX * scale;
@@ -576,14 +594,25 @@ export function renderLabelsLayer() {
     let targetPos = state.leafletMap.layerPointToLatLng(finalPt);
 
     let distFromOrig = Math.sqrt(Math.pow(l.x - l.origX, 2) + Math.pow(l.y - l.origY, 2));
-    let showLeader = (!isCompact && distFromOrig >= 16);
+    let showLeader = (!isCompact && distFromOrig >= 12);
 
     if (showLeader) {
+      // 起点ドット（バブル表示と同様に重心位置を明確に示す小さなマーク）
+      L.circleMarker(l.latlng, {
+        radius: 2,
+        fillColor: "#475569",
+        color: "#ffffff",
+        weight: 1,
+        fillOpacity: 0.9,
+        interactive: false
+      }).addTo(state.labelGroup);
+
+      // 引き出し線
       L.polyline([l.latlng, targetPos], {
-        color: "#475569",
+        color: "#64748b",
         weight: 1.2,
-        opacity: 0.75,
-        dashArray: "2,2",
+        opacity: 0.8,
+        dashArray: "3,3",
         interactive: false
       }).addTo(state.labelGroup);
     }

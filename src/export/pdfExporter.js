@@ -247,22 +247,22 @@ export async function generateA4ReportPDF(orientation = "landscape") {
   }
 
   if (isZScore) {
-    transformBadge = pShort ? `（${pShort}・Zスコア）` : "（Zスコア標準化偏差）";
+    transformBadge = pShort ? `${pShort} ✕ Zスコア` : "Zスコア標準化偏差";
     transformShortLabel = pShort ? `${pShort} ✕ Zスコア` : "Zスコア標準化";
     effectiveUnitStr = pShort ? `Zスコア (${pShort})` : "Zスコア (平均=0, SD=1)";
     axisUnitStr = "Zスコア";
   } else if (isTScore) {
-    transformBadge = pShort ? `（${pShort}・偏差値）` : "（偏差値 Tスコア）";
+    transformBadge = pShort ? `${pShort} ✕ 偏差値` : "偏差値（Tスコア）";
     transformShortLabel = pShort ? `${pShort} ✕ 偏差値` : "偏差値";
     effectiveUnitStr = pShort ? `偏差値 (${pShort})` : "偏差値 (平均=50, SD=10)";
     axisUnitStr = "偏差値";
   } else if (isPerCapita) {
-    transformBadge = `（${pBadge}）`;
+    transformBadge = pBadge;
     transformShortLabel = pBadge;
     effectiveUnitStr = rawUnitClean ? `${rawUnitClean} (${pShort})` : pShort;
     axisUnitStr = pAxis;
   } else {
-    transformBadge = "（実測値）";
+    transformBadge = "実測値";
     transformShortLabel = "実測値";
     effectiveUnitStr = rawUnitClean ? rawUnitClean : "";
     axisUnitStr = rawUnitClean ? rawUnitClean : "";
@@ -379,17 +379,33 @@ export async function generateA4ReportPDF(orientation = "landscape") {
     <p class="rep-sub">
       ${subtitle ? subtitle + ' ｜ ' : ''}
       <strong>${varName}</strong>
-      ${effectiveUnitStr ? ` <span style="font-weight:normal; color:#475569;">[${effectiveUnitStr}]</span>` : ''}
+      ${rawUnitClean ? ` <span style="font-weight:normal; color:#475569;">[${rawUnitClean}]</span>` : ''}
       <span class="rep-mode-badge" style="display:inline-block; margin-left:8px; padding:2px 8px; font-size:0.75rem; font-weight:700; background:#f1f5f9; border:1px solid #94a3b8; border-radius:4px; color:#0f172a;">${transformBadge}</span>
     </p>
   `;
+
+  // タイトルの長さに応じたフォントサイズ動的スケーリング（3行はみ出し・枠破壊防止）
+  const titleLen = (title || "").length;
+  let landTitleFontSize = "1.22rem";
+  if (titleLen > 36) {
+    landTitleFontSize = "0.94rem";
+  } else if (titleLen > 24) {
+    landTitleFontSize = "1.08rem";
+  }
+
+  let portTitleFontSize = "1.25rem";
+  if (titleLen > 36) {
+    portTitleFontSize = "0.98rem";
+  } else if (titleLen > 24) {
+    portTitleFontSize = "1.12rem";
+  }
 
   // First render initial template with loading state for map image
   if (orientation === "landscape") {
     sheet.innerHTML = `
       <header class="rep-header">
         <div class="rep-title-group">
-          <h1>${title}</h1>
+          <h1 style="font-size:${landTitleFontSize};">${title}</h1>
           ${repSubHtml}
         </div>
         <div class="rep-meta-badge">
@@ -448,7 +464,7 @@ export async function generateA4ReportPDF(orientation = "landscape") {
     sheet.innerHTML = `
       <header class="rep-header">
         <div class="rep-title-group">
-          <h1 style="font-size:1.35rem;">${title}</h1>
+          <h1 style="font-size:${portTitleFontSize};">${title}</h1>
           ${repSubHtml}
         </div>
         <div class="rep-meta-badge">

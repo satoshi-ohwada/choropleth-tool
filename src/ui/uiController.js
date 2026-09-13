@@ -100,12 +100,10 @@ export function switchActiveVariable(key, notify = true) {
   if (unitInput) unitInput.value = rawUnit;
   if (remarksInput) remarksInput.value = state.remarks;
 
-  const displayTitle = document.getElementById("display-map-title");
   const displaySubtitle = document.getElementById("display-map-subtitle");
-  const displayUnit = document.getElementById("display-legend-unit");
   const displayRemarks = document.getElementById("display-map-remarks");
 
-  if (displayTitle) displayTitle.textContent = state.title;
+  updateMapTitleDisplay();
   if (displaySubtitle) displaySubtitle.textContent = state.subtitle;
   if (displayRemarks) displayRemarks.textContent = state.remarks;
 
@@ -189,6 +187,21 @@ export function updatePerCapitaUnit() {
   const unitInput = document.getElementById("map-unit-input");
   if (unitInput && document.activeElement !== unitInput) {
     unitInput.value = rawUnit;
+  }
+}
+
+export function updateMapTitleDisplay() {
+  const el = document.getElementById("display-map-title");
+  const headerBox = document.querySelector(".map-overlay-header");
+  const title = state.title || "";
+  if (el) {
+    el.textContent = title || "市町村別統計マップ";
+  }
+
+  if (headerBox) {
+    const len = title.length;
+    headerBox.classList.toggle("title-ultra-compact", len > 32);
+    headerBox.classList.toggle("title-compact", len > 20 && len <= 32);
   }
 }
 
@@ -986,8 +999,7 @@ export function bindUIEvents() {
   if (titleInput) {
     titleInput.addEventListener("input", (e) => {
       state.title = e.target.value;
-      const el = document.getElementById("display-map-title");
-      if (el) el.textContent = state.title;
+      updateMapTitleDisplay();
     });
   }
   if (subTitleInput) {
@@ -1220,12 +1232,11 @@ export function resetAppState(showToastMsg = true) {
   if (remarksInput) remarksInput.value = "";
   if (rawPasteInput) rawPasteInput.value = "";
 
-  const displayTitle = document.getElementById("display-map-title");
   const displaySubtitle = document.getElementById("display-map-subtitle");
   const displayUnit = document.getElementById("display-legend-unit");
   const displayRemarks = document.getElementById("display-map-remarks");
 
-  if (displayTitle) displayTitle.textContent = "市町村別統計マップ";
+  updateMapTitleDisplay();
   if (displaySubtitle) displaySubtitle.textContent = "データを読み込むと作図が始まります";
   if (displayUnit) displayUnit.textContent = "";
   if (displayRemarks) displayRemarks.textContent = "";

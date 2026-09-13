@@ -1131,20 +1131,38 @@ input[type="number"] {
   left: 5.2cqw; /* Avoid overlap with Leaflet zoom control */
   z-index: 500;
   background: #ffffff;
-  padding: 1.2cqw 1.8cqw;
-  border-radius: 0.9cqw;
+  padding: 0.9cqw 1.4cqw;
+  border-radius: 0.8cqw;
   border: 1px solid #cbd5e1;
   box-shadow: none;
-  max-width: 58cqw;
+  max-width: 62cqw;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .map-overlay-header h2 {
-  font-size: 1.95cqw;
+  font-size: 1.85cqw;
   font-weight: 800;
   color: #0f172a;
-  line-height: 1.25;
-  margin-bottom: 0.3cqw;
+  line-height: 1.2;
+  margin-bottom: 0.2cqw;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  max-height: 2.45em;
+}
+
+.map-overlay-header.title-compact h2 {
+  font-size: 1.48cqw;
+  line-height: 1.18;
+}
+
+.map-overlay-header.title-ultra-compact h2 {
+  font-size: 1.22cqw;
+  line-height: 1.15;
 }
 
 .map-subtitle-row {
@@ -2373,18 +2391,35 @@ input[type="number"] {
   margin-bottom: 6px;
 }
 
+.rep-title-group {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12px;
+}
+
 .rep-title-group h1 {
   font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
-  margin: 0 0 3px 0;
-  line-height: 1.25;
+  margin: 0 0 2px 0;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  max-height: 2.45em;
 }
 
 .rep-title-group .rep-sub {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: #475569;
   margin: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rep-meta-badge {
