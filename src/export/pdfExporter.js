@@ -348,11 +348,6 @@ function buildMuniVerticalBarChartSVG(muniList, formatReportVal, axisUnitStr, tr
       <title>${rank}位: ${name} (${formatReportVal(val)})</title>
     </rect>`;
 
-    // 1位、2位、3位の順位番号
-    if (rank <= 3) {
-      const rankColor = rank === 1 ? '#b45309' : rank === 2 ? '#334155' : '#92400e';
-      svgInner += `<text x="${cx.toFixed(1)}" y="${(barY - 3).toFixed(1)}" text-anchor="middle" font-size="7.5" font-weight="800" fill="${rankColor}">${rank}</text>`;
-    }
 
     // 市町村名（縦書き・90度回転で美しく下部に整列）
     const labelY = padT + chartH + 7;
@@ -360,7 +355,7 @@ function buildMuniVerticalBarChartSVG(muniList, formatReportVal, axisUnitStr, tr
   });
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:visible; display:block;">
+    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:hidden; max-height:100%; display:block;">
       ${svgInner}
     </svg>
   `;
@@ -570,7 +565,7 @@ export async function generateA4ReportPDF(orientation = "landscape") {
   // 全40市町村 棒グラフ（多い方から順に降順ソート）
   const descMuniList = [...sorted].reverse();
   const horizontalBarChartHtml = buildMuniHorizontalBarChartHtml(descMuniList, formatReportVal, axisUnitStr, transformShortLabel);
-  const verticalBarChartHtml = buildMuniVerticalBarChartSVG(descMuniList, formatReportVal, axisUnitStr, transformShortLabel, 630, 235, mean);
+  const verticalBarChartHtml = buildMuniVerticalBarChartSVG(descMuniList, formatReportVal, axisUnitStr, transformShortLabel, 630, 195, mean);
 
   const distSvgHtmlLandscape = `
     <div class="rep-dist-svg-wrap">
@@ -663,7 +658,7 @@ export async function generateA4ReportPDF(orientation = "landscape") {
       </main>
 
       <footer class="rep-footer">
-        <div class="rep-footer-remarks">${remarksText || '※ 本資料は完全ローカル環境で作成・出力されたデータ分析レポートです。'}</div>
+        <div class="rep-footer-remarks">${remarksText || `分析対象: 青森県全40市町村 (${n}市町村の有効データを集計)`}</div>
         <div class="rep-footer-brand">青森県市町村コロプレスツール</div>
       </footer>
     `;
@@ -738,7 +733,7 @@ export async function generateA4ReportPDF(orientation = "landscape") {
       </main>
 
       <footer class="rep-footer">
-        <div class="rep-footer-remarks">${remarksText ? '※ 本資料は完全ローカル環境で作成・出力されたデータ分析レポートです。' : `分析対象: 青森県全40市町村 (${n}市町村の有効データを集計)`}</div>
+        <div class="rep-footer-remarks">${remarksText || `分析対象: 青森県全40市町村 (${n}市町村の有効データを集計)`}</div>
         <div class="rep-footer-brand">青森県市町村コロプレスツール</div>
       </footer>
     `;

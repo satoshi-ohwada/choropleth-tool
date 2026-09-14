@@ -97,7 +97,7 @@ export function renderBoxPlot() {
   // 0. 縦の基準軸線（x=34）
   svgHtml += `<line x1="34" y1="${topY}" x2="34" y2="${bottomY}" stroke="#e2e8f0" stroke-width="1" />`;
 
-  // 1. カラーパレットの階級区分カラーバー（x=78〜84）
+  // 1. カラーパレットの階級区分カラーバー（x=77〜85）
   const breaks = state.computedBreaks;
   if (breaks && breaks.length >= 2) {
     svgHtml += `<g class="boxplot-color-strip">`;
@@ -109,7 +109,7 @@ export function renderBoxPlot() {
       let h = Math.max(1, yBot - yTop);
       let midVal = (b1 + b2) / 2;
       let col = getColorForValue(midVal);
-      svgHtml += `<rect x="78" y="${yTop.toFixed(1)}" width="6" height="${h.toFixed(1)}" fill="${col}" opacity="0.85" rx="1.2" />`;
+      svgHtml += `<rect x="77" y="${yTop.toFixed(1)}" width="8" height="${h.toFixed(1)}" fill="${col}" stroke="#94a3b8" stroke-width="0.8" opacity="0.95" rx="1" />`;
     }
     svgHtml += `</g>`;
   }
