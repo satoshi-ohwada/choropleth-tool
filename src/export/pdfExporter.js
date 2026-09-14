@@ -687,12 +687,9 @@ export async function generateA4ReportPDF(orientation = "landscape") {
 
         <!-- 中段: サマリー & データ分布図 -->
         <div class="rep-portrait-mid">
-          <div class="rep-card" style="display:flex; flex-direction:column; justify-content:space-between;">
-            <div>
-              <div class="rep-card-title"><i class="fa-solid fa-table-cells" style="color:#0f172a;"></i> 基本統計サマリー <span style="font-size:0.72rem; font-weight:normal; color:#64748b;">(${transformShortLabel})</span></div>
-              ${statTableHtmlPortrait}
-            </div>
-            ${remarksText ? `<div style="font-size:0.67rem; color:#475569; margin-top:2px; line-height:1.2; border-top:1px dashed #cbd5e1; padding-top:2px; white-space:pre-line;"><strong>備考:</strong> ${remarksText}</div>` : ''}
+          <div class="rep-card">
+            <div class="rep-card-title"><i class="fa-solid fa-table-cells" style="color:#0f172a;"></i> 基本統計サマリー <span style="font-size:0.72rem; font-weight:normal; color:#64748b;">(${transformShortLabel})</span></div>
+            ${statTableHtmlPortrait}
           </div>
 
           <div class="rep-card rep-dist-card" style="display:flex; flex-direction:column; justify-content:space-between;">
