@@ -8,7 +8,7 @@ export const PALETTES = {
   oranges: ["#ffffff", "#ffedd5", "#fed7aa", "#fb923c", "#ea580c", "#c2410c", "#431407"],
   reds: ["#ffffff", "#fee2e2", "#fca5a5", "#ef4444", "#dc2626", "#991b1b", "#450a0a"],
   purples: ["#ffffff", "#f3e8ff", "#e9d5ff", "#c084fc", "#9333ea", "#6b21a8", "#3b0764"],
-  ylorrd: ["#ffffff", "#ffffb2", "#fed976", "#feb24c", "#fd8d3c", "#e31a1c", "#800026"],
+  ylorrd: ["#ffffb2", "#fed976", "#feb24c", "#fd8d3c", "#fc4e2a", "#e31a1c", "#b10026"],
   grayscale: ["#ffffff", "#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#334155", "#0f172a"],
   spectral: ["#9e0142", "#d53e4f", "#f46d43", "#fdae61", "#fee08b", "#e6f598", "#abdda4", "#66c2a5", "#3288bd", "#5e4fa2"],
   plasma: ["#0d0887", "#46039f", "#7201a8", "#9c179e", "#bd3786", "#d8576b", "#ed7953"],
