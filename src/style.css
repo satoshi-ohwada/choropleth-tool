@@ -2367,7 +2367,7 @@ input[type="number"] {
   width: 980px;
   max-width: 100%;
   aspect-ratio: 297 / 210;
-  padding: 24px 30px;
+  padding: 18px 26px 16px 26px;
   display: flex;
   flex-direction: column;
 }
@@ -2445,19 +2445,19 @@ input[type="number"] {
   color: #64748b;
 }
 
-/* Body Layout - Landscape (左右2カラム) */
+/* Body Layout - Landscape (左: 最大化地図＆コンパクト分布図, 右: サマリー＆横棒グラフ) */
 .rep-body-landscape {
   flex: 1;
   display: grid;
-  grid-template-columns: 1.45fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1.48fr 1fr;
+  gap: 10px;
   min-height: 0;
 }
 
 .rep-map-col {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-height: 0;
   height: 100%;
 }
@@ -2469,10 +2469,10 @@ input[type="number"] {
 
 .rep-dist-card {
   flex-shrink: 0;
-  padding: 5px 10px;
+  padding: 4px 8px;
 }
 
-/* Body Layout - Portrait (上下2段、下段は左右2カラム) */
+/* Body Layout - Portrait (上段: 最大化地図, 中段: サマリー&分布, 下段: 40市町村縦棒グラフ) */
 .rep-body-portrait {
   flex: 1;
   display: flex;
@@ -2481,18 +2481,24 @@ input[type="number"] {
   min-height: 0;
 }
 
-.rep-portrait-top {
+.rep-portrait-map {
   flex: 1;
-  min-height: 0;
-  max-height: 42%;
+  min-height: 350px;
+}
+
+.rep-portrait-mid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 135px;
+  min-height: 135px;
 }
 
 .rep-portrait-bottom {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
   flex-shrink: 0;
-  min-height: 0;
+  height: 250px;
+  min-height: 250px;
 }
 
 /* Map Image Box */
@@ -2606,91 +2612,320 @@ input[type="number"] {
   border-top: 1.5px dotted #475569;
 }
 
-/* Statistics Table */
-.rep-stat-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.72rem;
+/* Statistics Table - Landscape (2列×4行 均等バランス配置) */
+.orient-landscape .rep-stat-card {
+  padding: 5px 8px 6px !important;
+  flex-shrink: 0;
 }
 
-.rep-stat-table tr {
+.orient-landscape .rep-stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.69rem;
+}
+
+.orient-landscape .rep-stat-table tr {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.rep-stat-table tr:last-child {
+.orient-landscape .rep-stat-table tr:last-child {
   border-bottom: none;
 }
 
-.rep-stat-table th {
+.orient-landscape .rep-stat-table th {
   text-align: left;
-  padding: 2.5px 5px;
+  padding: 2px 4px;
   color: #334155;
   font-weight: 600;
-  width: 44%;
+  width: 20%;
   background: transparent;
-  border-right: 1px solid #e2e8f0;
+  white-space: nowrap;
 }
 
-.rep-stat-table td {
+.orient-landscape .rep-stat-table td {
   text-align: right;
-  padding: 2.5px 5px;
+  padding: 2px 4px;
   color: #0f172a;
   font-weight: 700;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  width: 30%;
+  white-space: nowrap;
 }
 
-.rep-stat-table td .muni-tag {
-  font-size: 0.68rem;
+.orient-landscape .rep-stat-table td:first-of-type {
+  border-right: 1.5px solid #cbd5e1;
+  padding-right: 6px;
+}
+
+.orient-landscape .rep-stat-table th:last-of-type {
+  padding-left: 6px;
+}
+
+.orient-landscape .rep-stat-table td .muni-tag {
+  font-size: 0.62rem;
   color: #64748b;
   font-weight: 600;
-  margin-left: 4px;
+  margin-left: 2px;
 }
 
-/* Ranking Table (Top & Bottom) */
-.rep-rank-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.rep-rank-sub {
-  font-size: 0.68rem;
-  font-weight: 700;
-  margin-bottom: 3px;
-  color: #0f172a;
-}
-
-.rep-rank-table {
+/* Statistics Table - Compact (縦置き 2列×4行) */
+.orient-portrait .rep-stat-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.68rem;
+  font-size: 0.67rem;
 }
 
-.rep-rank-table td {
+.orient-portrait .rep-stat-table tr {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.orient-portrait .rep-stat-table tr:last-child {
+  border-bottom: none;
+}
+
+.orient-portrait .rep-stat-table th {
+  text-align: left;
   padding: 1.5px 3px;
-  border-bottom: 1px dashed #cbd5e1;
+  color: #334155;
+  font-weight: 600;
+  width: 19%;
+  background: transparent;
+  white-space: nowrap;
 }
 
-.rep-rank-table td.rank-num {
-  width: 16px;
+.orient-portrait .rep-stat-table td {
+  text-align: right;
+  padding: 1.5px 3px;
+  color: #0f172a;
   font-weight: 700;
-  color: #475569;
-  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  width: 31%;
+  white-space: nowrap;
 }
 
-.rep-rank-table td.rank-name {
+.orient-portrait .rep-stat-table td:first-of-type {
+  border-right: 1.5px solid #cbd5e1;
+  padding-right: 5px;
+}
+
+.orient-portrait .rep-stat-table th:last-of-type {
+  padding-left: 5px;
+}
+
+.orient-portrait .rep-stat-table td .muni-tag {
+  font-size: 0.60rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+/* Municipalities Bar Chart (40 Municipalities in Descending Order) */
+.rep-bar-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.orient-landscape .rep-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.orient-landscape .rep-bar-card {
+  padding: 6px 10px 6px !important;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.orient-landscape .rep-bar-card .rep-bar-card-title {
+  margin-bottom: 3px;
+  padding-bottom: 2px;
+  font-size: 0.72rem;
+}
+
+.orient-landscape .rep-bar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.orient-landscape .rep-bar-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.orient-landscape .rep-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  line-height: 1.1;
+  padding: 1px 0;
+  flex: 1;
+  min-height: 0;
+  max-height: 22px;
+}
+
+.orient-landscape .rep-bar-track {
+  flex: 1;
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.orient-portrait .rep-bar-card {
+  padding: 6px 10px 8px !important;
+}
+
+.rep-bar-card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #94a3b8;
+  padding-bottom: 3px;
+}
+
+.rep-bar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.rep-bar-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 0;
+}
+
+.rep-bar-col-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.60rem;
+  color: #64748b;
+  font-weight: 700;
+  padding: 0 1px 2px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 2px;
+}
+
+.rep-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.67rem;
+  line-height: 1.15;
+  padding: 2px 0;
+}
+
+.rep-bar-rank {
+  width: 14px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #64748b;
+  text-align: right;
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.rep-bar-rank.rank-gold {
+  color: #b45309;
+  font-weight: 800;
+}
+.rep-bar-rank.rank-silver {
+  color: #334155;
+  font-weight: 800;
+}
+.rep-bar-rank.rank-bronze {
+  color: #92400e;
+  font-weight: 800;
+}
+
+.rep-bar-name {
+  width: 44px;
   font-weight: 600;
   color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
 }
 
-.rep-rank-table td.rank-val {
+.rep-bar-track {
+  flex: 1;
+  height: 8.5px;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.rep-bar-fill {
+  height: 100%;
+  min-width: 2px;
+  border-radius: 1px;
+  border: 1px solid #334155 !important; /* 一番小さな階級が白色でも輪郭がくっきり視認できる縁取り */
+  box-sizing: border-box;
+}
+
+.rep-bar-val {
+  min-width: 44px;
   text-align: right;
   font-weight: 700;
+  font-size: 0.66rem;
   color: #0f172a;
   font-family: ui-monospace, SFMono-Regular, monospace;
+  flex-shrink: 0;
+}
+
+/* Distribution Compact Legend for Portrait */
+.rep-dist-legend-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.63rem;
+  color: #475569;
+  margin-bottom: 2px;
+  padding-bottom: 2px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.rep-vbar-svg-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Distribution Boxplot Section */

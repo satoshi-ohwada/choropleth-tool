@@ -3,6 +3,7 @@ import { state } from '../core/state.js';
 import { getEffectiveValues, calculateStats, formatNumber, computePercentile } from '../stats/statsEngine.js';
 import { generateMapPNGData } from './imageExporter.js';
 import { showToast } from '../ui/toast.js';
+import { getColorForValue } from '../map/legendRenderer.js';
 
 export function setPrintPageOrientation(orientation) {
   const styleEl = document.getElementById("print-page-style");
@@ -67,11 +68,13 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 530, h
   let yMax = Math.ceil(peakVal * 1.18);
   if (yMax < 2) yMax = 2;
 
+  const isNarrow = width <= 340;
+
   // パディングと描画寸法
-  const padL = 38;
-  const padR = 24;
-  const padT = 26;
-  const padB = 22;
+  const padL = isNarrow ? 26 : 38;
+  const padR = isNarrow ? 12 : 24;
+  const padT = isNarrow ? 14 : 24;
+  const padB = isNarrow ? 14 : 22;
   const chartW = width - padL - padR;
   const chartH = height - padT - padB;
 
@@ -89,22 +92,25 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 530, h
   svgInner += `<line x1="${padL}" y1="${padT}" x2="${padL + chartW}" y2="${padT}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2" />`;
 
   // Y軸度数ラベル
-  svgInner += `<text x="${padL - 5}" y="${padT + chartH + 3}" font-size="7.5" fill="#475569" text-anchor="end">0</text>`;
-  svgInner += `<text x="${padL - 5}" y="${(midY + 3).toFixed(1)}" font-size="7.5" fill="#475569" text-anchor="end">${midCount}</text>`;
-  svgInner += `<text x="${padL - 5}" y="${padT + 3}" font-size="7.5" fill="#475569" text-anchor="end">${yMax}</text>`;
-  svgInner += `<text x="${padL}" y="${padT - 13}" font-size="7.5" fill="#475569" font-weight="700" text-anchor="start">度数 (自治体数)</text>`;
+  const yLabelSize = isNarrow ? "7" : "7.5";
+  svgInner += `<text x="${padL - 4}" y="${padT + chartH + 3}" font-size="${yLabelSize}" fill="#475569" text-anchor="end">0</text>`;
+  svgInner += `<text x="${padL - 4}" y="${(midY + 3).toFixed(1)}" font-size="${yLabelSize}" fill="#475569" text-anchor="end">${midCount}</text>`;
+  svgInner += `<text x="${padL - 4}" y="${padT + 3}" font-size="${yLabelSize}" fill="#475569" text-anchor="end">${yMax}</text>`;
+  if (!isNarrow) {
+    svgInner += `<text x="${padL}" y="${padT - 11}" font-size="7.5" fill="#475569" font-weight="700" text-anchor="start">度数 (自治体数)</text>`;
+  }
 
   // 2. ヒストグラムの描画
   const barWidth = chartW / numBins;
   bins.forEach((count, i) => {
     const barH = (count / yMax) * chartH;
-    const x = padL + i * barWidth + 2;
+    const x = padL + i * barWidth + (isNarrow ? 1 : 2);
     const y = padT + chartH - barH;
-    const w = Math.max(barWidth - 4, 2);
+    const w = Math.max(barWidth - (isNarrow ? 2 : 4), 2);
 
-    svgInner += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${barH.toFixed(1)}" fill="#f1f5f9" stroke="#334155" stroke-width="1.2" rx="1" />`;
+    svgInner += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${barH.toFixed(1)}" fill="#f1f5f9" stroke="#334155" stroke-width="1.1" rx="1" />`;
     if (count > 0) {
-      svgInner += `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 3).toFixed(1)}" font-size="8.5" fill="#0f172a" text-anchor="middle" font-weight="700">${count}</text>`;
+      svgInner += `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 2).toFixed(1)}" font-size="${isNarrow ? '7.5' : '8.5'}" fill="#0f172a" text-anchor="middle" font-weight="700">${count}</text>`;
     }
   });
 
@@ -116,58 +122,248 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 530, h
     pathD += `${idx === 0 ? '' : 'L '}${x.toFixed(1)},${y.toFixed(1)} `;
   });
 
-  svgInner += `<path d="${pathD}" fill="none" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />`;
+  svgInner += `<path d="${pathD}" fill="none" stroke="#0f172a" stroke-width="${isNarrow ? '1.6' : '2'}" stroke-linejoin="round" />`;
 
   // 4. 平均値・中央値のリファレンス垂直線
   const meanX = padL + Math.max(0, Math.min(1, (mean - min) / range)) * chartW;
   const medianX = padL + Math.max(0, Math.min(1, (median - min) / range)) * chartW;
-  const closeTogether = Math.abs(meanX - medianX) < 45;
+  const closeTogether = Math.abs(meanX - medianX) < (isNarrow ? 35 : 45);
 
-  let meanY = padT - 4;
-  let medianY = padT - 4;
+  let meanY = padT - 3;
+  let medianY = padT - 3;
   if (closeTogether) {
     if (meanX <= medianX) {
-      meanY = padT - 13;
-      medianY = padT - 3;
+      meanY = padT - (isNarrow ? 5 : 10);
+      medianY = padT - 2;
     } else {
-      medianY = padT - 13;
-      meanY = padT - 3;
+      medianY = padT - (isNarrow ? 5 : 10);
+      meanY = padT - 2;
     }
   }
 
   const getAnchor = (x) => {
-    if (x < padL + 25) return "start";
-    if (x > padL + chartW - 25) return "end";
+    if (x < padL + (isNarrow ? 18 : 25)) return "start";
+    if (x > padL + chartW - (isNarrow ? 18 : 25)) return "end";
     return "middle";
   };
   const meanAnchor = getAnchor(meanX);
   const medianAnchor = getAnchor(medianX);
 
+  const refLabelSize = isNarrow ? "7" : "8";
+
   // 平均値線（黒破線）
-  svgInner += `<line x1="${meanX.toFixed(1)}" y1="${padT}" x2="${meanX.toFixed(1)}" y2="${padT + chartH}" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="4,3" />`;
-  svgInner += `<text x="${meanX.toFixed(1)}" y="${meanY}" font-size="8" fill="#0f172a" text-anchor="${meanAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">平均: ${valFmt(mean)}</text>`;
+  svgInner += `<line x1="${meanX.toFixed(1)}" y1="${padT}" x2="${meanX.toFixed(1)}" y2="${padT + chartH}" stroke="#0f172a" stroke-width="1.3" stroke-dasharray="3,2" />`;
+  svgInner += `<text x="${meanX.toFixed(1)}" y="${meanY}" font-size="${refLabelSize}" fill="#0f172a" text-anchor="${meanAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">平均:${valFmt(mean)}</text>`;
 
   // 中央値線（濃灰破線）
-  svgInner += `<line x1="${medianX.toFixed(1)}" y1="${padT}" x2="${medianX.toFixed(1)}" y2="${padT + chartH}" stroke="#475569" stroke-width="1.5" stroke-dasharray="2,2" />`;
-  svgInner += `<text x="${medianX.toFixed(1)}" y="${medianY}" font-size="8" fill="#475569" text-anchor="${medianAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">中央: ${valFmt(median)}</text>`;
+  svgInner += `<line x1="${medianX.toFixed(1)}" y1="${padT}" x2="${medianX.toFixed(1)}" y2="${padT + chartH}" stroke="#475569" stroke-width="1.3" stroke-dasharray="2,2" />`;
+  svgInner += `<text x="${medianX.toFixed(1)}" y="${medianY}" font-size="${refLabelSize}" fill="#475569" text-anchor="${medianAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">中央:${valFmt(median)}</text>`;
 
   // 5. X軸目盛り＆注釈ラベル
   const unitLabel = unitStr ? ` (${unitStr})` : '';
-  let noteText = "※KDE: ガウス核推定（度数スケール換算）";
-  if (unitStr && (unitStr.includes("Zスコア") || unitStr.includes("Z値"))) {
-    noteText = "※Zスコア標準化尺度（平均0, SD=1）";
-  } else if (unitStr && unitStr.includes("偏差値")) {
-    noteText = "※偏差値尺度（平均50, SD=10）";
-  }
+  const axisLabelSize = isNarrow ? "6.8" : "7.8";
 
-  svgInner += `<text x="${padL}" y="${height - 5}" text-anchor="start" font-size="7.8" font-weight="600" fill="#334155">最小: ${valFmt(min)}${unitLabel}</text>`;
-  svgInner += `<text x="${padL + chartW}" y="${height - 5}" text-anchor="end" font-size="7.8" font-weight="600" fill="#334155">最大: ${valFmt(max)}${unitLabel}</text>`;
-  svgInner += `<text x="${(padL + chartW / 2).toFixed(1)}" y="${height - 5}" text-anchor="middle" font-size="7.2" fill="#64748b">${noteText}</text>`;
+  svgInner += `<text x="${padL}" y="${height - 2}" text-anchor="start" font-size="${axisLabelSize}" font-weight="600" fill="#334155">最小: ${valFmt(min)}${unitLabel}</text>`;
+  svgInner += `<text x="${padL + chartW}" y="${height - 2}" text-anchor="end" font-size="${axisLabelSize}" font-weight="600" fill="#334155">最大: ${valFmt(max)}${unitLabel}</text>`;
+
+  if (!isNarrow) {
+    let noteText = "※KDE: ガウス核推定（度数スケール換算）";
+    if (unitStr && (unitStr.includes("Zスコア") || unitStr.includes("Z値"))) {
+      noteText = "※Zスコア標準化尺度（平均0, SD=1）";
+    } else if (unitStr && unitStr.includes("偏差値")) {
+      noteText = "※偏差値尺度（平均50, SD=10）";
+    }
+    svgInner += `<text x="${(padL + chartW / 2).toFixed(1)}" y="${height - 3}" text-anchor="middle" font-size="7.2" fill="#64748b">${noteText}</text>`;
+  }
 
   return `
   <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:visible; display:block;">
     ${svgInner}
   </svg>`;
+}
+
+function buildMuniHorizontalBarChartHtml(muniList, formatReportVal, axisUnitStr, transformShortLabel) {
+  if (!muniList || muniList.length === 0) {
+    return '<div class="text-muted p-2" style="font-size:0.75rem;">有効なデータがありません</div>';
+  }
+
+  const validVals = muniList.map(item => item[1]).filter(v => v !== null && v !== undefined && !isNaN(v));
+  const maxVal = validVals.length > 0 ? Math.max(...validVals) : 0;
+  const minVal = validVals.length > 0 ? Math.min(...validVals) : 0;
+
+  const hasNegative = minVal < 0;
+  const absMax = Math.max(Math.abs(maxVal), Math.abs(minVal)) || 1;
+
+  // 2列に均等分割（左列: 1〜20位、右列: 21〜40位）
+  const half = Math.ceil(muniList.length / 2);
+  const col1 = muniList.slice(0, half);
+  const col2 = muniList.slice(half);
+
+  const renderCol = (list, startRank) => {
+    return list.map((item, idx) => {
+      const rank = startRank + idx;
+      const name = item[0];
+      const val = item[1];
+      const formattedVal = formatReportVal(val);
+      const color = (val !== null && !isNaN(val)) ? getColorForValue(val) : "#cbd5e1";
+
+      let barWidthPercent = 0;
+      if (val !== null && !isNaN(val)) {
+        if (!hasNegative) {
+          barWidthPercent = maxVal > 0 ? Math.max(1, Math.min(100, (val / maxVal) * 100)) : 0;
+        } else {
+          barWidthPercent = Math.max(1, Math.min(100, (Math.abs(val) / absMax) * 100));
+        }
+      }
+
+      const rankClass = rank === 1 ? 'rank-gold' : rank === 2 ? 'rank-silver' : rank === 3 ? 'rank-bronze' : '';
+
+      return `
+        <div class="rep-bar-row">
+          <span class="rep-bar-rank ${rankClass}">${rank}</span>
+          <span class="rep-bar-name" title="${name}">${name}</span>
+          <div class="rep-bar-track">
+            <div class="rep-bar-fill" style="width:${barWidthPercent.toFixed(1)}%; background-color:${color}; border:1px solid #334155;"></div>
+          </div>
+          <span class="rep-bar-val">${formattedVal}</span>
+        </div>
+      `;
+    }).join("");
+  };
+
+  const unitDesc = axisUnitStr ? `[${axisUnitStr}]` : `(${transformShortLabel})`;
+
+  return `
+    <div class="rep-bar-card-title">
+      <div class="d-flex align-items-center gap-1">
+        <i class="fa-solid fa-chart-simple" style="color:#0f172a;"></i>
+        <span>40市町村 横棒グラフ (多い順)</span>
+      </div>
+      <span style="font-size:0.66rem; font-weight:normal; color:#64748b;">${unitDesc}</span>
+    </div>
+    <div class="rep-bar-grid">
+      <div class="rep-bar-col">
+        <div class="rep-bar-col-header">
+          <span>順位 / 自治体</span>
+          <span>比較バー ＆ 数値</span>
+        </div>
+        ${renderCol(col1, 1)}
+      </div>
+      <div class="rep-bar-col">
+        <div class="rep-bar-col-header">
+          <span>順位 / 自治体</span>
+          <span>比較バー ＆ 数値</span>
+        </div>
+        ${renderCol(col2, half + 1)}
+      </div>
+    </div>
+  `;
+}
+
+function buildMuniVerticalBarChartSVG(muniList, formatReportVal, axisUnitStr, transformShortLabel, width = 630, height = 245, mean = null) {
+  if (!muniList || muniList.length === 0) {
+    return `<svg width="${width}" height="${height}"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="11" fill="#94a3b8">有効なデータがありません</text></svg>`;
+  }
+
+  const validVals = muniList.map(item => item[1]).filter(v => v !== null && v !== undefined && !isNaN(v));
+  const maxVal = validVals.length > 0 ? Math.max(...validVals) : 0;
+  const minVal = validVals.length > 0 ? Math.min(...validVals) : 0;
+
+  const padL = 46;
+  const padR = 14;
+  const padT = 22;
+  const padB = 64; // 市町村名ラベル用領域
+  const chartW = width - padL - padR;
+  const chartH = height - padT - padB;
+
+  const n = muniList.length;
+  const colStep = chartW / n;
+  const barW = Math.max(5, Math.min(10.5, colStep - 3.2));
+
+  const hasNeg = minVal < 0;
+  let zeroY = padT + chartH;
+  if (hasNeg) {
+    zeroY = padT + (maxVal / (maxVal - minVal || 1)) * chartH;
+  }
+
+  let svgInner = '';
+
+  // 水平グリッド線 ＆ Y軸ラベル (0%, 25%, 50%, 75%, 100%)
+  const numGridLines = 4;
+  for (let i = 0; i <= numGridLines; i++) {
+    const ratio = i / numGridLines;
+    const y = padT + chartH * (1 - ratio);
+    const gridVal = hasNeg ? (minVal + (maxVal - minVal) * ratio) : (maxVal * ratio);
+
+    svgInner += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + chartW}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="${i === 0 ? 'none' : '2,2'}" />`;
+    svgInner += `<text x="${padL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="7.5" font-family="ui-monospace, monospace" fill="#64748b">${formatReportVal(gridVal)}</text>`;
+  }
+
+  // 平均値基準線
+  if (mean !== null && !isNaN(mean)) {
+    let meanY;
+    if (hasNeg) {
+      meanY = padT + ((maxVal - mean) / (maxVal - minVal || 1)) * chartH;
+    } else {
+      meanY = padT + chartH - (mean / (maxVal || 1)) * chartH;
+    }
+    if (meanY >= padT && meanY <= padT + chartH) {
+      svgInner += `<line x1="${padL}" y1="${meanY.toFixed(1)}" x2="${padL + chartW}" y2="${meanY.toFixed(1)}" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="4,2" />`;
+      svgInner += `<text x="${padL + chartW - 2}" y="${(meanY - 3).toFixed(1)}" text-anchor="end" font-size="7.5" font-weight="700" fill="#dc2626" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">平均: ${formatReportVal(mean)}</text>`;
+    }
+  }
+
+  // 40本の垂直バーと市町村名ラベル
+  muniList.forEach((item, idx) => {
+    const rank = idx + 1;
+    const name = item[0];
+    const val = item[1];
+    const color = (val !== null && !isNaN(val)) ? getColorForValue(val) : "#cbd5e1";
+
+    const cx = padL + colStep * idx + colStep / 2;
+    const x = cx - barW / 2;
+
+    let barY = zeroY;
+    let barH = 0;
+
+    if (val !== null && !isNaN(val)) {
+      if (!hasNeg) {
+        barH = maxVal > 0 ? (val / maxVal) * chartH : 0;
+        barY = padT + chartH - barH;
+      } else {
+        if (val >= 0) {
+          barH = ((val) / (maxVal - minVal || 1)) * chartH;
+          barY = zeroY - barH;
+        } else {
+          barH = (Math.abs(val) / (maxVal - minVal || 1)) * chartH;
+          barY = zeroY;
+        }
+      }
+    }
+
+    barH = Math.max(1.5, barH);
+
+    // バー矩形（最小階級が白色でもくっきり見えるよう濃いグレーで縁取り）
+    svgInner += `<rect x="${x.toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="1.5" ry="1.5" fill="${color}" stroke="#334155" stroke-width="0.9">
+      <title>${rank}位: ${name} (${formatReportVal(val)})</title>
+    </rect>`;
+
+    // 1位、2位、3位の順位番号
+    if (rank <= 3) {
+      const rankColor = rank === 1 ? '#b45309' : rank === 2 ? '#334155' : '#92400e';
+      svgInner += `<text x="${cx.toFixed(1)}" y="${(barY - 3).toFixed(1)}" text-anchor="middle" font-size="7.5" font-weight="800" fill="${rankColor}">${rank}</text>`;
+    }
+
+    // 市町村名（縦書き・90度回転で美しく下部に整列）
+    const labelY = padT + chartH + 7;
+    svgInner += `<text x="${cx.toFixed(1)}" y="${labelY}" transform="rotate(90, ${cx.toFixed(1)}, ${labelY})" text-anchor="start" font-size="8.2" font-weight="600" fill="#1e293b" letter-spacing="-0.02em">${name}</text>`;
+  });
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:visible; display:block;">
+      ${svgInner}
+    </svg>
+  `;
 }
 
 export async function generateA4ReportPDF(orientation = "landscape") {
@@ -307,39 +503,31 @@ export async function generateA4ReportPDF(orientation = "landscape") {
     ? `<div style="font-size:0.68rem; color:#64748b; margin-top:4px; line-height:1.2;">※平均値は各市町村の単純算術平均（人口加重なし）<br>※人口補正基準: 令和2年(2020年)国勢調査人口</div>`
     : '';
 
-  const statTableHtml = `
+  const statTableHtmlLandscape = `
     <table class="rep-stat-table">
       <tbody>
         <tr>
-          <th>対象自治体数</th>
-          <td>${n} / 40 市町村</td>
-        </tr>
-        <tr>
+          <th>対象数</th>
+          <td>${n} / 40</td>
           <th>合　計</th>
           <td>${sumDisplay}</td>
         </tr>
         <tr>
-          <th>平均値 (Mean)</th>
+          <th>平均値</th>
           <td>${formatReportVal(mean)}</td>
-        </tr>
-        <tr>
-          <th>中央値 (Median)</th>
+          <th>中央値</th>
           <td>${formatReportVal(median)}</td>
         </tr>
         <tr>
-          <th>最　大 (Max)</th>
+          <th>最　大</th>
           <td>${formatReportVal(maxEntry[1])}<span class="muni-tag">(${maxEntry[0]})</span></td>
-        </tr>
-        <tr>
-          <th>最　小 (Min)</th>
+          <th>最　小</th>
           <td>${formatReportVal(minEntry[1])}<span class="muni-tag">(${minEntry[0]})</span></td>
         </tr>
         <tr>
-          <th>標準偏差 (SD)</th>
+          <th>標準偏差</th>
           <td>${formatReportVal(stdDev)}</td>
-        </tr>
-        <tr>
-          <th>四分位範囲 (IQR)</th>
+          <th>四分位範囲</th>
           <td>${formatReportVal(iqr)}</td>
         </tr>
       </tbody>
@@ -347,39 +535,52 @@ export async function generateA4ReportPDF(orientation = "landscape") {
     ${avgNoteHtml}
   `;
 
-  // Rankings (上位・下位各10位)
-  const rankLimit = 10;
-  const topRank = [...sorted].reverse().slice(0, rankLimit);
-  const bottomRank = [...sorted].slice(0, rankLimit);
+  const statTableHtmlPortrait = `
+    <table class="rep-stat-table">
+      <tbody>
+        <tr>
+          <th>対象数</th>
+          <td>${n} / 40</td>
+          <th>合　計</th>
+          <td>${sumDisplay}</td>
+        </tr>
+        <tr>
+          <th>平均値</th>
+          <td>${formatReportVal(mean)}</td>
+          <th>中央値</th>
+          <td>${formatReportVal(median)}</td>
+        </tr>
+        <tr>
+          <th>最　大</th>
+          <td>${formatReportVal(maxEntry[1])}<span class="muni-tag">(${maxEntry[0]})</span></td>
+          <th>最　小</th>
+          <td>${formatReportVal(minEntry[1])}<span class="muni-tag">(${minEntry[0]})</span></td>
+        </tr>
+        <tr>
+          <th>標準偏差</th>
+          <td>${formatReportVal(stdDev)}</td>
+          <th>四分位範囲</th>
+          <td>${formatReportVal(iqr)}</td>
+        </tr>
+      </tbody>
+    </table>
+    ${avgNoteHtml}
+  `;
 
-  const rankRows = (list, isTop) => list.map((item, idx) => `
-    <tr>
-      <td class="rank-num">${idx + 1}</td>
-      <td class="rank-name" title="${item[0]}">${item[0]}</td>
-      <td class="rank-val">${formatReportVal(item[1])}</td>
-    </tr>
-  `).join("");
+  // 全40市町村 棒グラフ（多い方から順に降順ソート）
+  const descMuniList = [...sorted].reverse();
+  const horizontalBarChartHtml = buildMuniHorizontalBarChartHtml(descMuniList, formatReportVal, axisUnitStr, transformShortLabel);
+  const verticalBarChartHtml = buildMuniVerticalBarChartSVG(descMuniList, formatReportVal, axisUnitStr, transformShortLabel, 630, 235, mean);
 
-  const rankGridHtml = `
-    <div class="rep-rank-grid">
-      <div>
-        <div class="rep-rank-sub"><i class="fa-solid fa-arrow-trend-up me-1"></i>上位 ${rankLimit} 自治体</div>
-        <table class="rep-rank-table">
-          <tbody>${rankRows(topRank, true)}</tbody>
-        </table>
-      </div>
-      <div>
-        <div class="rep-rank-sub"><i class="fa-solid fa-arrow-trend-down me-1"></i>下位 ${rankLimit} 自治体</div>
-        <table class="rep-rank-table">
-          <tbody>${rankRows(bottomRank, false)}</tbody>
-        </table>
-      </div>
+  const distSvgHtmlLandscape = `
+    <div class="rep-dist-svg-wrap">
+      ${buildReportDistributionSVG(nums, min, mean, median, max, 520, 105, axisUnitStr, formatReportVal)}
     </div>
   `;
 
-  const distSvgHtml = `
+  const distSvgHtmlPortrait = `
     <div class="rep-dist-svg-wrap">
-      ${buildReportDistributionSVG(nums, min, mean, median, max, orientation === "portrait" ? 630 : 530, orientation === "portrait" ? 130 : 118, axisUnitStr, formatReportVal)}
+      ${buildReportDistributionSVG(nums, min, mean, median, max, 305, 94, axisUnitStr, formatReportVal)}
     </div>
   `;
 
@@ -439,25 +640,24 @@ export async function generateA4ReportPDF(orientation = "landscape") {
                 <span class="rep-dist-subtitle">(${transformShortLabel})</span>
               </div>
               <div class="rep-dist-legend">
-                <span class="rep-legend-item"><span class="rep-legend-box"></span>度数(ヒストグラム)</span>
-                <span class="rep-legend-item"><span class="rep-legend-line rep-kde-line"></span>KDE密度曲線</span>
-                <span class="rep-legend-item"><span class="rep-legend-line rep-mean-line"></span>平均値</span>
-                <span class="rep-legend-item"><span class="rep-legend-line rep-median-line"></span>中央値</span>
+                <span class="rep-legend-item"><span class="rep-legend-box"></span>度数</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-kde-line"></span>KDE</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-mean-line"></span>平均</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-median-line"></span>中央</span>
               </div>
             </div>
-            ${distSvgHtml}
+            ${distSvgHtmlLandscape}
           </div>
         </div>
 
         <div class="rep-info-col">
-          <div class="rep-card">
-            <div class="rep-card-title"><i class="fa-solid fa-table-cells" style="color:#0f172a;"></i> 基本統計サマリー <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(${transformShortLabel})</span></div>
-            ${statTableHtml}
+          <div class="rep-card rep-stat-card">
+            <div class="rep-card-title"><i class="fa-solid fa-table-cells" style="color:#0f172a;"></i> 基本統計サマリー <span style="font-size:0.72rem; font-weight:normal; color:#64748b;">(${transformShortLabel})</span></div>
+            ${statTableHtmlLandscape}
           </div>
 
-          <div class="rep-card" style="flex:1;">
-            <div class="rep-card-title"><i class="fa-solid fa-ranking-star" style="color:#0f172a;"></i> 自治体ランキング (上位・下位各10) <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(${axisUnitStr || transformShortLabel})</span></div>
-            ${rankGridHtml}
+          <div class="rep-card rep-bar-card" style="flex:1;">
+            ${horizontalBarChartHtml}
           </div>
         </div>
       </main>
@@ -481,7 +681,8 @@ export async function generateA4ReportPDF(orientation = "landscape") {
       </header>
 
       <main class="rep-body-portrait">
-        <div class="rep-map-frame rep-portrait-top">
+        <!-- 上段: 最大化地図エリア -->
+        <div class="rep-map-frame rep-portrait-map">
           <img id="rep-map-img" src="" alt="${title}" style="display:none;">
           <div id="rep-map-loading" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#64748b; font-size:0.85rem;">
             <i class="fa-solid fa-spinner fa-spin mb-2" style="font-size:1.4rem; color:#475569;"></i>
@@ -489,46 +690,55 @@ export async function generateA4ReportPDF(orientation = "landscape") {
           </div>
         </div>
 
-        <div class="rep-card rep-dist-card">
-          <div class="rep-card-title rep-dist-card-title">
-            <div class="rep-dist-title-text">
-              <i class="fa-solid fa-chart-area" style="color:#0f172a;"></i>
-              <span>データ分布</span>
-              <span class="rep-dist-subtitle">(${transformShortLabel})</span>
+        <!-- 中段: サマリー & データ分布図 -->
+        <div class="rep-portrait-mid">
+          <div class="rep-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div class="rep-card-title"><i class="fa-solid fa-table-cells" style="color:#0f172a;"></i> 基本統計サマリー <span style="font-size:0.72rem; font-weight:normal; color:#64748b;">(${transformShortLabel})</span></div>
+              ${statTableHtmlPortrait}
             </div>
-            <div class="rep-dist-legend">
-              <span class="rep-legend-item"><span class="rep-legend-box"></span>度数(ヒストグラム)</span>
-              <span class="rep-legend-item"><span class="rep-legend-line rep-kde-line"></span>KDE密度曲線</span>
-              <span class="rep-legend-item"><span class="rep-legend-line rep-mean-line"></span>平均値</span>
-              <span class="rep-legend-item"><span class="rep-legend-line rep-median-line"></span>中央値</span>
-            </div>
+            ${remarksText ? `<div style="font-size:0.67rem; color:#475569; margin-top:2px; line-height:1.2; border-top:1px dashed #cbd5e1; padding-top:2px; white-space:pre-line;"><strong>備考:</strong> ${remarksText}</div>` : ''}
           </div>
-          ${distSvgHtml}
+
+          <div class="rep-card rep-dist-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div class="rep-card-title" style="margin-bottom:2px;">
+                <div class="d-flex align-items-center gap-1">
+                  <i class="fa-solid fa-chart-area" style="color:#0f172a;"></i>
+                  <span>データ分布</span>
+                </div>
+                <span class="rep-dist-subtitle" style="font-size:0.68rem; font-weight:normal; color:#64748b;">(${transformShortLabel})</span>
+              </div>
+              <div class="rep-dist-legend-compact">
+                <span class="rep-legend-item"><span class="rep-legend-box"></span>度数</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-kde-line"></span>KDE</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-mean-line"></span>平均</span>
+                <span class="rep-legend-item"><span class="rep-legend-line rep-median-line"></span>中央</span>
+              </div>
+            </div>
+            ${distSvgHtmlPortrait}
+          </div>
         </div>
 
-        <div class="rep-portrait-bottom">
-          <div class="rep-info-col">
-            <div class="rep-card">
-              <div class="rep-card-title"><i class="fa-solid fa-table-cells" style="color:#0f172a;"></i> 基本統計サマリー <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(${transformShortLabel})</span></div>
-              ${statTableHtml}
+        <!-- 下段: 40市町村 縦棒グラフ（横軸: 40市町村, 縦軸: 値） -->
+        <div class="rep-card rep-bar-card rep-portrait-bottom">
+          <div class="rep-bar-card-title">
+            <div class="d-flex align-items-center gap-1">
+              <i class="fa-solid fa-chart-column" style="color:#0f172a;"></i>
+              <span>40市町村 棒グラフ (多い順)</span>
             </div>
-            <div class="rep-card" style="flex:1;">
-              <div class="rep-card-title"><i class="fa-solid fa-circle-info" style="color:#0f172a;"></i> 備考・出典</div>
-              <div style="font-size:0.72rem; color:#475569; line-height:1.4; white-space:pre-line;">${remarksText || '※ 本資料は完全ローカル環境で作成・出力されたデータ分析レポートです。'}</div>
-            </div>
+            <span style="font-size:0.68rem; font-weight:normal; color:#64748b;">
+              ${axisUnitStr ? `[${axisUnitStr}]` : `(${transformShortLabel})`}
+            </span>
           </div>
-
-          <div class="rep-info-col">
-            <div class="rep-card" style="flex:1;">
-              <div class="rep-card-title"><i class="fa-solid fa-ranking-star" style="color:#0f172a;"></i> 自治体ランキング (上位・下位各10) <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(${axisUnitStr || transformShortLabel})</span></div>
-              ${rankGridHtml}
-            </div>
+          <div class="rep-vbar-svg-wrap">
+            ${verticalBarChartHtml}
           </div>
         </div>
       </main>
 
       <footer class="rep-footer">
-        <div class="rep-footer-remarks">分析対象: 青森県全40市町村 (${n}市町村の有効データを集計)</div>
+        <div class="rep-footer-remarks">${remarksText ? '※ 本資料は完全ローカル環境で作成・出力されたデータ分析レポートです。' : `分析対象: 青森県全40市町村 (${n}市町村の有効データを集計)`}</div>
         <div class="rep-footer-brand">青森県市町村コロプレスツール</div>
       </footer>
     `;
