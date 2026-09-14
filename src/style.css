@@ -2287,7 +2287,8 @@ input[type="number"] {
   background: #f8fafc;
 }
 
-.report-orient-card.active {
+.report-orient-card.active,
+.report-orient-card:has(input[type="radio"]:checked) {
   border-color: #2563eb;
   background: #eff6ff;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);

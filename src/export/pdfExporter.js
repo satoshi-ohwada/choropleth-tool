@@ -185,6 +185,14 @@ export async function generateA4ReportPDF(orientation = "landscape") {
   if (btnLand) btnLand.classList.toggle("active", orientation === "landscape");
   if (btnPort) btnPort.classList.toggle("active", orientation === "portrait");
 
+  // Update tab page orientation radio and card active states
+  const radio = document.querySelector(`input[name="report-orientation"][value="${orientation}"]`);
+  if (radio) radio.checked = true;
+  const labelLand = document.getElementById("label-orient-landscape");
+  const labelPort = document.getElementById("label-orient-portrait");
+  if (labelLand) labelLand.classList.toggle("active", orientation === "landscape");
+  if (labelPort) labelPort.classList.toggle("active", orientation === "portrait");
+
   modal.classList.remove("hidden");
 
   // Title / Subtitle / Meta

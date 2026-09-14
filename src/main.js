@@ -57,7 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const sheet = document.getElementById("report-sheet");
     if (modal && (modal.classList.contains("hidden") || !sheet || !sheet.innerHTML.trim())) {
       wasAutoOpenedForPrint = true;
-      generateA4ReportPDF("landscape");
+      const orient = document.querySelector('input[name="report-orientation"]:checked')?.value || "landscape";
+      generateA4ReportPDF(orient);
     }
   });
 
@@ -75,7 +76,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (modal && modal.classList.contains("hidden")) {
         e.preventDefault();
         showToast("A4レポートを生成して印刷プレビューを起動します...", "info");
-        generateA4ReportPDF("landscape").then(() => {
+        const orient = document.querySelector('input[name="report-orientation"]:checked')?.value || "landscape";
+        generateA4ReportPDF(orient).then(() => {
           setTimeout(() => {
             window.print();
           }, 350);

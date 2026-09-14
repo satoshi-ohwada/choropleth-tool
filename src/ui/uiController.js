@@ -1075,9 +1075,27 @@ export function bindUIEvents() {
     });
   }
 
+  // Report Orientation Radio Selection (Tab Page)
+  const reportOrientRadios = document.querySelectorAll('input[name="report-orientation"]');
+  reportOrientRadios.forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const val = e.target.value;
+      const labelLand = document.getElementById("label-orient-landscape");
+      const labelPort = document.getElementById("label-orient-portrait");
+      if (labelLand) labelLand.classList.toggle("active", val === "landscape");
+      if (labelPort) labelPort.classList.toggle("active", val === "portrait");
+    });
+  });
+
   // Report Modal Triggers & Controls
   const btnReportPDF = document.getElementById("btn-open-report-modal");
-  if (btnReportPDF) btnReportPDF.addEventListener("click", () => generateA4ReportPDF("landscape"));
+  if (btnReportPDF) {
+    btnReportPDF.addEventListener("click", () => {
+      const selectedRadio = document.querySelector('input[name="report-orientation"]:checked');
+      const orient = selectedRadio ? selectedRadio.value : "landscape";
+      generateA4ReportPDF(orient);
+    });
+  }
 
   const btnCloseReport = document.getElementById("btn-close-report-modal");
   const btnCancelReport = document.getElementById("btn-cancel-report-modal");
