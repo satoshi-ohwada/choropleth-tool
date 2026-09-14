@@ -422,15 +422,18 @@ export function renderGeoJSONLayer() {
   }
 
   if (state.showOuterBorder && state.geojsonData) {
-    state.outerBorderLayer = L.geoJSON(state.geojsonData, {
-      style: {
-        color: "#0f172a",
-        weight: 2.2,
-        fill: false,
-        opacity: 0.95
-      },
-      interactive: false
-    }).addTo(state.leafletMap);
+    const outerGeoJSON = getOuterBorderGeoJSON(state.geojsonData);
+    if (outerGeoJSON) {
+      state.outerBorderLayer = L.geoJSON(outerGeoJSON, {
+        style: {
+          color: "#0f172a",
+          weight: 2.4,
+          fill: false,
+          opacity: 0.95
+        },
+        interactive: false
+      }).addTo(state.leafletMap);
+    }
   }
 
   if (state.mapRenderMode === "bubble") {
@@ -629,6 +632,69 @@ export function renderLabelsLayer() {
     });
     L.marker(targetPos, { icon: icon, interactive: false }).addTo(state.labelGroup);
   });
+}
+
+let cachedOuterBoundaryGeoJSON = null;
+
+function getOuterBorderGeoJSON(geojsonData) {
+  if (cachedOuterBoundaryGeoJSON) return cachedOuterBoundaryGeoJSON;
+  if (!geojsonData || !geojsonData.features) return null;
+
+  const segmentCounts = new Map();
+  const segmentGeoms = new Map();
+
+  const coordKey = (pt) => `${pt[0].toFixed(5)},${pt[1].toFixed(5)}`;
+
+  function processRing(ring) {
+    for (let i = 0; i < ring.length - 1; i++) {
+      const p1 = ring[i];
+      const p2 = ring[i + 1];
+      const k1 = coordKey(p1);
+      const k2 = coordKey(p2);
+      if (k1 === k2) continue;
+
+      const key = k1 < k2 ? `${k1}_${k2}` : `${k2}_${k1}`;
+      if (segmentCounts.has(key)) {
+        segmentCounts.set(key, segmentCounts.get(key) + 1);
+      } else {
+        segmentCounts.set(key, 1);
+        segmentGeoms.set(key, [p1, p2]);
+      }
+    }
+  }
+
+  geojsonData.features.forEach(feature => {
+    const geom = feature.geometry;
+    if (!geom) return;
+    if (geom.type === "Polygon") {
+      geom.coordinates.forEach(ring => processRing(ring));
+    } else if (geom.type === "MultiPolygon") {
+      geom.coordinates.forEach(polygon => {
+        polygon.forEach(ring => processRing(ring));
+      });
+    }
+  });
+
+  const outerSegments = [];
+  segmentCounts.forEach((count, key) => {
+    if (count === 1) {
+      outerSegments.push(segmentGeoms.get(key));
+    }
+  });
+
+  cachedOuterBoundaryGeoJSON = {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      geometry: {
+        type: "MultiLineString",
+        coordinates: outerSegments
+      },
+      properties: { name: "Aomori Outer Boundary" }
+    }]
+  };
+
+  return cachedOuterBoundaryGeoJSON;
 }
 
 export { initMainMap as initLeafletMap };
