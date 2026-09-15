@@ -2400,29 +2400,31 @@ input[type="number"] {
 }
 
 .rep-title-group h1 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #0f172a;
-  margin: 0 0 2px 0;
-  padding: 2px 4px 1px 3px; /* 太字フォントの左上オーバーハングクリッピングを完全防止 */
-  line-height: 1.28;
+  margin: 0 0 1px 0;
+  padding: 1px 2px 1px 2px;
+  line-height: 1.22;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-all;
-  max-height: 2.65em;
+  max-height: 2.5em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
 }
 
 .rep-title-group .rep-sub {
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   color: #475569;
   margin: 0;
-  line-height: 1.25;
+  line-height: 1.22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
 }
 
 .rep-meta-badge {

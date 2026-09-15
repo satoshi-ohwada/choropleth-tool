@@ -588,20 +588,20 @@ export async function generateA4ReportPDF(orientation = "landscape") {
     </p>
   `;
 
-  // タイトルの長さに応じたフォントサイズ動的スケーリング（3行はみ出し・枠破壊防止）
+  // タイトルの長さに応じたフォントサイズ動的スケーリング（Windows Edge等のフォント字幅差・枠破壊防止）
   const titleLen = (title || "").length;
-  let landTitleFontSize = "1.22rem";
-  if (titleLen > 36) {
-    landTitleFontSize = "0.94rem";
-  } else if (titleLen > 24) {
-    landTitleFontSize = "1.08rem";
+  let landTitleFontSize = "1.10rem";
+  if (titleLen > 34) {
+    landTitleFontSize = "0.88rem";
+  } else if (titleLen > 22) {
+    landTitleFontSize = "0.98rem";
   }
 
-  let portTitleFontSize = "1.25rem";
-  if (titleLen > 36) {
-    portTitleFontSize = "0.98rem";
-  } else if (titleLen > 24) {
-    portTitleFontSize = "1.12rem";
+  let portTitleFontSize = "1.12rem";
+  if (titleLen > 34) {
+    portTitleFontSize = "0.90rem";
+  } else if (titleLen > 22) {
+    portTitleFontSize = "1.00rem";
   }
 
   // First render initial template with loading state for map image
