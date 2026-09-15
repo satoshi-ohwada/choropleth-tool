@@ -127,37 +127,45 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 530, h
   // 4. 平均値・中央値のリファレンス垂直線
   const meanX = padL + Math.max(0, Math.min(1, (mean - min) / range)) * chartW;
   const medianX = padL + Math.max(0, Math.min(1, (median - min) / range)) * chartW;
-  const closeTogether = Math.abs(meanX - medianX) < (isNarrow ? 35 : 45);
-
-  let meanY = padT - 3;
-  let medianY = padT - 3;
-  if (closeTogether) {
-    if (meanX <= medianX) {
-      meanY = padT - (isNarrow ? 5 : 10);
-      medianY = padT - 2;
-    } else {
-      medianY = padT - (isNarrow ? 5 : 10);
-      meanY = padT - 2;
-    }
-  }
+  const closeTogether = Math.abs(meanX - medianX) < (isNarrow ? 40 : 55);
 
   const getAnchor = (x) => {
     if (x < padL + (isNarrow ? 18 : 25)) return "start";
     if (x > padL + chartW - (isNarrow ? 18 : 25)) return "end";
     return "middle";
   };
-  const meanAnchor = getAnchor(meanX);
-  const medianAnchor = getAnchor(medianX);
+  let meanAnchor = getAnchor(meanX);
+  let medianAnchor = getAnchor(medianX);
+
+  let meanY = padT - 3;
+  let medianY = padT - 3;
+  if (closeTogether) {
+    if (meanX <= medianX) {
+      meanY = padT - 13;
+      medianY = padT - 1;
+      if (Math.abs(meanX - medianX) < 16) {
+        meanAnchor = "end";
+        medianAnchor = "start";
+      }
+    } else {
+      medianY = padT - 13;
+      meanY = padT - 1;
+      if (Math.abs(meanX - medianX) < 16) {
+        medianAnchor = "end";
+        meanAnchor = "start";
+      }
+    }
+  }
 
   const refLabelSize = isNarrow ? "7" : "8";
 
   // 平均値線（黒破線）
   svgInner += `<line x1="${meanX.toFixed(1)}" y1="${padT}" x2="${meanX.toFixed(1)}" y2="${padT + chartH}" stroke="#0f172a" stroke-width="1.3" stroke-dasharray="3,2" />`;
-  svgInner += `<text x="${meanX.toFixed(1)}" y="${meanY}" font-size="${refLabelSize}" fill="#0f172a" text-anchor="${meanAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">平均:${valFmt(mean)}</text>`;
+  svgInner += `<text x="${meanX.toFixed(1)}" y="${meanY}" font-size="${refLabelSize}" fill="#0f172a" text-anchor="${meanAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">平均:${valFmt(mean)}</text>`;
 
   // 中央値線（濃灰破線）
   svgInner += `<line x1="${medianX.toFixed(1)}" y1="${padT}" x2="${medianX.toFixed(1)}" y2="${padT + chartH}" stroke="#475569" stroke-width="1.3" stroke-dasharray="2,2" />`;
-  svgInner += `<text x="${medianX.toFixed(1)}" y="${medianY}" font-size="${refLabelSize}" fill="#475569" text-anchor="${medianAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">中央:${valFmt(median)}</text>`;
+  svgInner += `<text x="${medianX.toFixed(1)}" y="${medianY}" font-size="${refLabelSize}" fill="#475569" text-anchor="${medianAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">中央:${valFmt(median)}</text>`;
 
   // 5. X軸目盛り＆注釈ラベル
   const unitLabel = unitStr ? ` (${unitStr})` : '';
