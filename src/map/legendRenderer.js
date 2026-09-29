@@ -189,7 +189,8 @@ export function renderLegend() {
   const classCounts = Array(numClasses).fill(0);
   const effVals = getEffectiveValues();
 
-  Object.values(effVals).forEach(v => {
+  AOMORI_MUNICIPALITIES.forEach(m => {
+    let v = effVals[m.name];
     if (typeof v === 'number' && !isNaN(v)) {
       const stepIdx = getStepIndexForValue(v);
       if (stepIdx >= 0 && stepIdx < numClasses) {

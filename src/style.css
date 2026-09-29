@@ -1168,21 +1168,28 @@ input[type="number"] {
 .map-subtitle-row {
   display: flex;
   align-items: center;
-  gap: 0.8cqw;
-  flex-wrap: wrap;
+  gap: 0.6cqw;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .map-overlay-header p {
-  font-size: 1.2cqw;
+  font-size: 1.15cqw;
   color: #475569;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .map-mode-text {
-  font-size: 1.15cqw;
+  font-size: 1.1cqw;
   font-weight: 700;
   color: #1e40af;
   white-space: nowrap;
+  flex-shrink: 0;
   display: inline-block;
 }
 
@@ -2400,29 +2407,31 @@ input[type="number"] {
 }
 
 .rep-title-group h1 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #0f172a;
-  margin: 0 0 2px 0;
-  padding: 2px 4px 1px 3px; /* 太字フォントの左上オーバーハングクリッピングを完全防止 */
-  line-height: 1.28;
+  margin: 0 0 1px 0;
+  padding: 1px 2px 1px 2px;
+  line-height: 1.22;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-all;
-  max-height: 2.65em;
+  max-height: 2.5em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
 }
 
 .rep-title-group .rep-sub {
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   color: #475569;
   margin: 0;
-  line-height: 1.25;
+  line-height: 1.22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
 }
 
 .rep-meta-badge {
@@ -2479,13 +2488,13 @@ input[type="number"] {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-height: 0;
 }
 
 .rep-portrait-map {
   flex: 1;
-  min-height: 350px;
+  min-height: 280px;
 }
 
 .rep-portrait-mid {
@@ -2493,14 +2502,15 @@ input[type="number"] {
   grid-template-columns: 1.05fr 1fr;
   gap: 8px;
   flex-shrink: 0;
-  height: 135px;
-  min-height: 135px;
+  height: auto;
+  min-height: 130px;
 }
 
 .rep-portrait-bottom {
   flex-shrink: 0;
-  height: 250px;
-  min-height: 250px;
+  height: 235px;
+  min-height: 235px;
+  overflow: hidden;
 }
 
 /* Map Image Box */
